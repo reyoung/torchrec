@@ -148,6 +148,11 @@ def bucketize_kjt_before_all2all(
 
     # kernel expects them to be same type, cast to avoid type mismatch
     block_sizes_new_type = block_sizes.type(kjt.values().type())
+
+    weights = kjt.weights_or_none()
+    if weights is not None:
+        weights = weights.to("cpu")
+
     (
         bucketized_lengths,
         bucketized_indices,
@@ -155,14 +160,19 @@ def bucketize_kjt_before_all2all(
         pos,
         unbucketize_permute,
     ) = torch.ops.fbgemm.block_bucketize_sparse_features(
-        kjt.lengths().view(-1),
-        kjt.values(),
+        kjt.lengths().view(-1).to("cpu"),
+        kjt.values().to("cpu"),
         bucketize_pos=bucketize_pos,
         sequence=output_permute,
-        block_sizes=block_sizes_new_type,
+        block_sizes=block_sizes_new_type.to("cpu"),
         my_size=num_buckets,
-        weights=kjt.weights_or_none(),
+        weights=weights,
     )
+    dev = block_sizes_new_type.device
+    bucketized_lengths = bucketized_lengths.to(dev)
+    bucketized_indices = bucketized_indices.to(dev)
+    if bucketized_weights is not None:
+        bucketized_weights = bucketized_weights.to(dev)
 
     return (
         KeyedJaggedTensor(
