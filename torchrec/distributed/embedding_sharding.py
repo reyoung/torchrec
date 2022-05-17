@@ -173,6 +173,8 @@ def bucketize_kjt_before_all2all(
     bucketized_indices = bucketized_indices.to(dev)
     if bucketized_weights is not None:
         bucketized_weights = bucketized_weights.to(dev)
+    if unbucketize_permute is not None:
+        unbucketize_permute = unbucketize_permute.to(dev)
 
     return (
         KeyedJaggedTensor(
