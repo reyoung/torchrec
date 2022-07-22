@@ -16,6 +16,10 @@ endif()
 
 option(TDE_WITH_TESTING "Enable unittest in C++ side" ${TDE_IS_TOP_LEVEL_PROJECT})
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    option(TDE_WITH_CXX11_ABI "GLIBCXX use c++11 ABI or not. libtorch installed by conda is not use it by default," OFF)
+endif()
+
 if (TDE_WITH_TESTING)
     enable_testing()
 endif()

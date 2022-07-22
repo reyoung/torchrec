@@ -7,6 +7,14 @@ target_include_directories(tde_cpp_objs PUBLIC ${TORCH_INCLUDE_DIRS})
 target_compile_features(tde_cpp_objs PUBLIC cxx_std_17)
 target_link_libraries(tde_cpp_objs PUBLIC tcb::span)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if (TDE_WITH_CXX11_ABI)
+        target_compile_definitions(tde_cpp_objs PUBLIC -D_GLIBCXX_USE_CXX11_ABI=1)
+    else()
+        target_compile_definitions(tde_cpp_objs PUBLIC -D_GLIBCXX_USE_CXX11_ABI=0)
+    endif()
+endif()
+
 # tde_cpp.so section
 add_library(tde_cpp MODULE bind.cpp)
 target_link_libraries(tde_cpp PRIVATE tde_cpp_objs)
