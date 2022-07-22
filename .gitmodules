@@ -1,0 +1,6 @@
+[submodule "contrib/dynamic_embedding/src/3rd/Catch2"]
+	path = contrib/dynamic_embedding/src/3rd/Catch2
+	url = https://github.com/catchorg/Catch2.git
+[submodule "contrib/dynamic_embedding/src/3rd/span"]
+	path = contrib/dynamic_embedding/src/3rd/span
+	url = https://github.com/tcbrindle/span.git
