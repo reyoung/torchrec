@@ -1,10 +1,25 @@
-# Catch2 section.
+include(FetchContent)
+
 if (TDE_WITH_TESTING)
-    add_subdirectory(Catch2)
+    FetchContent_Declare(googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG v1.12.0
+            )
+
+
+    FetchContent_Declare(google_benchmark
+            GIT_REPOSITORY https://github.com/google/benchmark.git
+            GIT_TAG v1.6.2
+            )
+
+    FetchContent_MakeAvailable(googletest google_benchmark)
 endif()
 
 # tcb::span section. A std::span implementation in C++ 11.
 # the tcb::span is enable_testing globally. so we do not add_subdirectory(span)
-add_library(tcb_span INTERFACE)
-target_include_directories(tcb_span INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/span/include)
-add_library(tcb::span ALIAS tcb_span)
+FetchContent_Declare(
+        tcb_span
+        GIT_REPOSITORY https://github.com/tcbrindle/span.git
+        GIT_TAG 836dc6a0efd9849cb194e88e4aa2387436bb079b
+)
+FetchContent_MakeAvailable(tcb_span)
