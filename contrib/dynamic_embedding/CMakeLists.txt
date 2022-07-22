@@ -20,15 +20,9 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     option(TDE_WITH_CXX11_ABI "GLIBCXX use c++11 ABI or not. libtorch installed by conda is not use it by default," OFF)
     if (NOT CMAKE_TOOLCHAIN_FILE) # if toolchain file not set.
         if (TDE_WITH_CXX11_ABI)
-            set(CMAKE_TOOLCHAIN_FILE
-                    "${CMAKE_CURRENT_SOURCE_DIR}/toolchains/gcc_use_cxx11_abi.cmake"
-                CACHE FILEPATH "Default toolchain"
-            )
+            set(CMAKE_CXX_FLAGS_INIT "-D_GLIBCXX_USE_CXX11_ABI=1")
         else()
-            set(CMAKE_TOOLCHAIN_FILE
-                    "${CMAKE_CURRENT_SOURCE_DIR}/toolchains/gcc_not_use_cxx11_abi.cmake"
-                CACHE FILEPATH "Default toolchain"
-            )
+            set(CMAKE_CXX_FLAGS_INIT "-D_GLIBCXX_USE_CXX11_ABI=0")
         endif()
     endif()
 endif()
