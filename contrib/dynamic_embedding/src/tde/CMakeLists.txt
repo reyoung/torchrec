@@ -4,14 +4,13 @@ add_library(tde_cpp_objs OBJECT id_transformer.cpp details/multithreaded_id_tran
 target_include_directories(tde_cpp_objs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../)
 target_link_libraries(tde_cpp_objs PUBLIC ${TORCH_LIBRARIES})
 target_include_directories(tde_cpp_objs PUBLIC ${TORCH_INCLUDE_DIRS})
-set_property(TARGET tde_cpp_objs PROPERTY CXX_STANDARD 17)
+target_compile_features(tde_cpp_objs PUBLIC cxx_std_17)
 target_link_libraries(tde_cpp_objs PUBLIC tcb::span)
 
 # tde_cpp.so section
 add_library(tde_cpp MODULE bind.cpp)
 target_link_libraries(tde_cpp PRIVATE tde_cpp_objs)
 set_target_properties(tde_cpp PROPERTIES PREFIX "")
-set_property(TARGET tde_cpp PROPERTY CXX_STANDARD 17)
 INSTALL(TARGETS tde_cpp DESTINATION torchrec_dynamic_embedding)
 
 
@@ -20,13 +19,11 @@ if (TDE_WITH_TESTING)
         add_executable(${NAME} ${ARGN})
         target_link_libraries(${NAME} tde_cpp_objs gtest gtest_main)
         add_test(NAME ${NAME} COMMAND ${NAME})
-        set_property(TARGET ${NAME} PROPERTY CXX_STANDARD 17)
     endfunction()
 
     function(add_tde_benchmark NAME)
         add_executable(${NAME} ${ARGN})
         target_link_libraries(${NAME} tde_cpp_objs benchmark::benchmark_main benchmark::benchmark)
-        set_property(TARGET ${NAME} PROPERTY CXX_STANDARD 17)
     endfunction()
 
     add_tde_test(multithreaded_id_transformer_test details/multithreaded_id_transformer_test.cpp)
