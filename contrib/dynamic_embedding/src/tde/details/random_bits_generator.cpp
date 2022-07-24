@@ -56,4 +56,53 @@ bool BitScanner::IsNextNBitsAllZero(uint16_t& n_bits) {
   }
 }
 BitScanner::BitScanner(size_t n) : array(new uint64_t[n]), size_(n) {}
+
+static ThreadPool g_random_pool_(1);
+constexpr static size_t k_n_random_elems = 8;
+
+class NElemsRandom {
+ public:
+  explicit NElemsRandom(std::mt19937_64& engine) : engine_(engine) {}
+  void operator()(tcb::span<uint64_t> elems) {
+    for (auto& elem : elems) {
+      elem = engine_();
+    }
+  }
+
+ private:
+  std::mt19937_64& engine_;
+};
+
+RandomBitsGenerator::RandomBitsGenerator()
+    : engine_(std::random_device()()),
+      scanner_(new BitScanner(k_n_random_elems)) {
+  scanner_->ResetArray(NElemsRandom(engine_));
+  scanner_future_ =
+      GeneratePendingFuture(std::make_unique<BitScanner>(k_n_random_elems));
+}
+bool RandomBitsGenerator::IsNextNBitsAllZero(uint16_t n_bits) {
+  bool ok = scanner_->IsNextNBitsAllZero(n_bits);
+  if (n_bits != 0) { // scanner is end.
+    auto scanner = scanner_future_.get();
+    scanner_future_ = GeneratePendingFuture(std::move(scanner_));
+    scanner_ = std::move(scanner);
+  }
+  if (!ok) {
+    return false;
+  }
+  if (n_bits != 0) [[unlikely]] {
+    return IsNextNBitsAllZero(n_bits);
+  } else {
+    return true;
+  }
+}
+
+std::future<std::unique_ptr<BitScanner>> RandomBitsGenerator::
+    GeneratePendingFuture(std::unique_ptr<BitScanner> scanner) {
+  return g_random_pool_.Enqueue(
+      [scanner = std::move(scanner), this]() -> std::unique_ptr<BitScanner> {
+        scanner->ResetArray(NElemsRandom(engine_));
+        return std::move(const_cast<std::unique_ptr<BitScanner>&>(scanner));
+      });
+}
 } // namespace tde::details

@@ -63,4 +63,17 @@ TEST(TDE, BitScanner2Elems) {
   ASSERT_EQ(scanner.array_idx_, 2);
 }
 
+TEST(TDE, RandomBitsGenerator) {
+  RandomBitsGenerator generator;
+  size_t true_cnt_{0};
+  constexpr static size_t n_iter = 10000000;
+  for (size_t i = 0; i < n_iter; ++i) {
+    if (generator.IsNextNBitsAllZero(10)) {
+      ++true_cnt_;
+    }
+  }
+
+  ASSERT_NEAR(double(true_cnt_) / double(n_iter), 1 / 1024.f, 1e-4);
+}
+
 } // namespace tde::details

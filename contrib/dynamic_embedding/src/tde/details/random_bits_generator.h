@@ -1,7 +1,9 @@
 #pragma once
 #include <memory>
+#include <random>
 #include <utility>
 #include "tcb/span.hpp"
+#include "tde/details/thread_pool.h"
 
 namespace tde::details {
 
@@ -36,6 +38,20 @@ class BitScanner {
  private:
   std::unique_ptr<uint64_t[]> array;
   uint16_t size_;
+};
+
+class RandomBitsGenerator {
+ public:
+  RandomBitsGenerator();
+
+  bool IsNextNBitsAllZero(uint16_t n_bits);
+
+ private:
+  std::future<std::unique_ptr<BitScanner>> GeneratePendingFuture(
+      std::unique_ptr<BitScanner> scanner);
+  std::unique_ptr<BitScanner> scanner_;
+  std::future<std::unique_ptr<BitScanner>> scanner_future_;
+  std::mt19937_64 engine_;
 };
 
 } // namespace tde::details
