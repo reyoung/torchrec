@@ -44,6 +44,13 @@ class RandomBitsGenerator {
  public:
   RandomBitsGenerator();
 
+  /**
+   * Is next N random bits are all zero or not.
+   * i.e., the true prob is approximately 1/(2^n_bits).
+   *
+   * @param n_bits
+   * @return
+   */
   bool IsNextNBitsAllZero(uint16_t n_bits);
 
  private:
