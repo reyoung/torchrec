@@ -22,7 +22,7 @@ struct BitMaskGroup {
   bool full_;
 };
 
-template <typename Tag, typename BitMask>
+template <typename Tag, typename BitMask = uint32_t>
 class NaiveIDTransformer {
  public:
   NaiveIDTransformer(

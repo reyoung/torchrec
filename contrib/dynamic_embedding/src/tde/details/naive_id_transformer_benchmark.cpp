@@ -6,7 +6,7 @@ namespace tde::details {
 
 static void BM_NaiveIDTransformer_Cold(benchmark::State& state) {
   using Tag = int32_t;
-  NaiveIDTransformer<Tag, uint32_t> transformer(1e8, 1e8);
+  NaiveIDTransformer<Tag> transformer(1e8, 1e8);
   torch::Tensor global_ids = torch::empty({1024, 1024}, torch::kLong);
   torch::Tensor cache_ids = torch::empty_like(global_ids);
   for (auto _ : state) {
@@ -26,7 +26,7 @@ BENCHMARK(BM_NaiveIDTransformer_Cold)
 
 static void BM_NaiveIDTransformer_Hot(benchmark::State& state) {
   using Tag = int32_t;
-  NaiveIDTransformer<Tag, uint32_t> transformer(1e8, 1e8);
+  NaiveIDTransformer<Tag> transformer(1e8, 1e8);
   torch::Tensor global_ids = torch::empty({1024, 1024}, torch::kLong);
   torch::Tensor cache_ids = torch::empty_like(global_ids);
   for (auto _ : state) {
