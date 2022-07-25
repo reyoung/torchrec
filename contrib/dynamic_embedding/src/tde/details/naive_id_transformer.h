@@ -6,7 +6,23 @@
 
 namespace tde::details {
 
-template <typename Tag>
+template <typename BitMask>
+struct BitMaskGroup {
+  BitMaskGroup(int64_t total_bits);
+  int64_t NextFreeBit();
+  void FreeBit(int64_t offset);
+
+  static constexpr int64_t B = sizeof(BitMask) * 8;
+
+  const int64_t total_bits_;
+  const int64_t total_bitmasks_;
+  std::unique_ptr<BitMask[]> bitmasks_;
+
+  int64_t next_free_bit_;
+  bool full_;
+};
+
+template <typename Tag, typename BitMask>
 class NaiveIDTransformer {
  public:
   NaiveIDTransformer(
@@ -32,9 +48,9 @@ class NaiveIDTransformer {
  private:
   const int64_t num_embedding_;
   const int64_t embedding_offset_;
-  int64_t next_cache_id_;
   std::unique_ptr<Tag[]> tags_;
   ska::flat_hash_map<int64_t, int64_t> global_id2cache_id_;
+  BitMaskGroup<BitMask> bitmasks_;
 };
 
 } // namespace tde::details
