@@ -39,7 +39,7 @@ struct ClzImpl<unsigned int> {
 template <>
 struct ClzImpl<int> {
   int operator()(int v) const {
-    return __builtin_clz(*reinterpret_cast<unsigned int*>(&v));
+    return __builtin_clz(static_cast<unsigned int>(v));
   }
 };
 
@@ -53,7 +53,7 @@ struct ClzImpl<unsigned long> {
 template <>
 struct ClzImpl<long> {
   int operator()(long v) const {
-    return __builtin_clzl(*reinterpret_cast<unsigned long*>(&v));
+    return __builtin_clzl(static_cast<unsigned long>(v));
   }
 };
 
@@ -67,7 +67,7 @@ struct ClzImpl<unsigned long long> {
 template <>
 struct ClzImpl<long long> {
   int operator()(long long v) const {
-    return __builtin_clzll(*reinterpret_cast<unsigned long long*>(&v));
+    return __builtin_clzll(static_cast<unsigned long long>(v));
   }
 };
 
