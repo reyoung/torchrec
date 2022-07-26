@@ -36,7 +36,8 @@ void BM_MixedLFULRUStrategy(benchmark::State& state) {
 BENCHMARK(BM_MixedLFULRUStrategy)
     ->ArgNames({"num_ext_values", "num_elems_per_iter"})
     ->Args({30000000, 1024 * 1024})
+    ->Args({300000000, 1024 * 1024})
     ->Unit(benchmark::kMillisecond)
-    ->Iterations(20);
+    ->Iterations(100);
 
 } // namespace tde::details

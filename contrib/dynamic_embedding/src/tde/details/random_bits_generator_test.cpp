@@ -32,8 +32,8 @@ TEST(TDE, BitScanner1Elem) {
     n_bits = 64 - 9 + 17;
     ASSERT_FALSE(scanner.IsNextNBitsAllZero(n_bits));
     ASSERT_EQ(n_bits, 17);
-    ASSERT_EQ(scanner.bit_idx, 0);
-    ASSERT_EQ(scanner.array_idx_, 1);
+    ASSERT_EQ(scanner.bit_idx, 10);
+    ASSERT_EQ(scanner.array_idx_, 0);
   }
 }
 

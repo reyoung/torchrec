@@ -3,7 +3,6 @@
 #include <random>
 #include <utility>
 #include "tcb/span.hpp"
-#include "tde/details/thread_pool.h"
 
 namespace tde::details {
 
@@ -55,10 +54,7 @@ class RandomBitsGenerator {
   bool IsNextNBitsAllZero(uint16_t n_bits);
 
  private:
-  std::future<std::unique_ptr<BitScanner>> GeneratePendingFuture(
-      std::unique_ptr<BitScanner> scanner);
-  std::unique_ptr<BitScanner> scanner_;
-  std::future<std::unique_ptr<BitScanner>> scanner_future_;
+  BitScanner scanner_;
   std::mt19937_64 engine_;
 };
 
