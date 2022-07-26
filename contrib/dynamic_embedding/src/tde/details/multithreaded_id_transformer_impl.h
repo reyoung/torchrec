@@ -29,17 +29,16 @@ int64_t MultiThreadedIDTransformer<Tag>::Transform(
   std::vector<std::future<int64_t>> futures;
   futures.reserve(num_threads_);
   for (size_t i = 0; i < num_threads_; ++i) {
-    futures.emplace_back(std::move(
-        thread_pool_.Enqueue([this, i, global_ids, cache_ids, update, fetch] {
-          return transformers_[i].Transform(
-              global_ids,
-              cache_ids,
-              [i, n = num_threads_](int64_t global_ids) {
-                return global_ids % static_cast<int64_t>(n) == i;
-              },
-              update,
-              fetch);
-        })));
+    futures.emplace_back(std::move(thread_pool_.Enqueue([&, this, i] {
+      return transformers_[i].Transform(
+          global_ids,
+          cache_ids,
+          [n = num_threads_, i](int64_t global_ids) {
+            return global_ids % static_cast<int64_t>(n) == i;
+          },
+          update,
+          fetch);
+    })));
   }
   int64_t num_transformed = 0;
   for (size_t i = 0; i < num_threads_; ++i) {

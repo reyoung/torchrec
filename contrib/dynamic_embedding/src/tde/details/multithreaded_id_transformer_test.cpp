@@ -9,11 +9,7 @@ TEST(tde, MultiThreadedIDTransformer) {
   const int64_t global_ids[6] = {100, 101, 100, 102, 101, 103};
   int64_t cache_ids[6];
   int64_t expected_cache_ids[6] = {0, 4, 0, 1, 4, 5};
-  int64_t num_transformed = transformer.Transform(
-      tcb::span<const int64_t>{global_ids},
-      tcb::span<int64_t>{cache_ids},
-      [](Tag tag, int64_t global_id, int64_t cache_id) { return tag; },
-      [](int64_t global_id, int64_t cache_id) {});
+  int64_t num_transformed = transformer.Transform(global_ids, cache_ids);
   EXPECT_EQ(6, num_transformed);
   for (size_t i = 0; i < 6; i++) {
     EXPECT_EQ(expected_cache_ids[i], cache_ids[i]);

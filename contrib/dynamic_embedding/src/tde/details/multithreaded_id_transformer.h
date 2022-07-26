@@ -21,13 +21,14 @@ class MultiThreadedIDTransformer {
    * @return number elems transformed. If the Transformer is full and need to be
    * evict. Then the return value is not equal to global_ids.size();
    */
-  template <typename Update, typename Fetch>
+  template <
+      typename Update = decltype(transform_default::NoUpdate<Tag>),
+      typename Fetch = decltype(transform_default::NoFetch)>
   int64_t Transform(
       tcb::span<const int64_t> global_ids,
       tcb::span<int64_t> cache_ids,
-      Update update =
-          [](Tag tag, int64_t global_id, int64_t cache_id) { return tag; },
-      Fetch fetch = [](int64_t global_id, int64_t cache_id) {});
+      Update update = transform_default::NoUpdate<Tag>,
+      Fetch fetch = transform_default::NoFetch);
 
   template <typename Callback>
   void ForEach(
