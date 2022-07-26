@@ -1,12 +1,14 @@
 #include "random_bits_generator.h"
+#include "c10/macros/Macros.h"
 #include "tde/details/bits_op.h"
+
 namespace tde::details {
 
 bool BitScanner::IsNextNBitsAllZero(uint16_t& n_bits) {
   if (n_bits == 0) {
     return true;
   }
-  if (array_idx_ == size_) [[unlikely]] {
+  if (C10_UNLIKELY(array_idx_ == size_)) {
     return true;
   }
 
@@ -90,7 +92,7 @@ bool RandomBitsGenerator::IsNextNBitsAllZero(uint16_t n_bits) {
   if (!ok) {
     return false;
   }
-  if (n_bits != 0) [[unlikely]] {
+  if (C10_UNLIKELY(n_bits != 0)) {
     return IsNextNBitsAllZero(n_bits);
   } else {
     return true;

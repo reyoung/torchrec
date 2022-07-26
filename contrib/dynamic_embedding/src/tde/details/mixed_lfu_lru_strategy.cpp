@@ -1,6 +1,7 @@
 #include "mixed_lfu_lru_strategy.h"
-#include <queue>
 #include <algorithm>
+#include <queue>
+#include "c10/macros/Macros.h"
 
 namespace tde::details {
 MixedLFULRUStrategy::MixedLFULRUStrategy(uint16_t min_used_freq_power)
@@ -15,7 +16,7 @@ MixedLFULRUStrategy::ExtendedValueType MixedLFULRUStrategy::Transform(
   Record r{};
   r.time_ = time_.load();
 
-  if (!val.has_value()) [[unlikely]] {
+  if (C10_UNLIKELY(!val.has_value())) {
     r.freq_power_ = min_lfu_power_;
   } else {
     auto freq_power = reinterpret_cast<Record*>(&val.value())->freq_power_;
