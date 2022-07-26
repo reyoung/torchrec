@@ -1,5 +1,5 @@
 #include "random_bits_generator.h"
-
+#include "tde/details/bits_op.h"
 namespace tde::details {
 
 bool BitScanner::IsNextNBitsAllZero(uint16_t& n_bits) {
@@ -42,7 +42,7 @@ bool BitScanner::IsNextNBitsAllZero(uint16_t& n_bits) {
       scan_result = true;
       bit_idx += n_bits;
     } else {
-      int clz = std::__libcpp_clz(val);
+      int clz = Clz(val);
       if (clz >= n_bits + bit_idx) {
         scan_result = true;
         bit_idx += n_bits;
