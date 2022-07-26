@@ -107,4 +107,7 @@ std::future<std::unique_ptr<BitScanner>> RandomBitsGenerator::
         return std::move(const_cast<std::unique_ptr<BitScanner>&>(scanner));
       });
 }
+RandomBitsGenerator::~RandomBitsGenerator() {
+  scanner_future_.wait();
+}
 } // namespace tde::details

@@ -43,6 +43,7 @@ class BitScanner {
 class RandomBitsGenerator {
  public:
   RandomBitsGenerator();
+  ~RandomBitsGenerator();
 
   /**
    * Is next N random bits are all zero or not.
