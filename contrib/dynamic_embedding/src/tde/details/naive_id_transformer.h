@@ -17,7 +17,7 @@ inline Tag NoUpdate(
     std::optional<Tag> tag,
     int64_t global_id,
     int64_t cache_id) {
-  return Tag{};
+  return tag.value_or(Tag{});
 };
 
 inline void NoFetch(int64_t global_id, int64_t cache_id) {}
