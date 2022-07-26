@@ -1,12 +1,12 @@
 #include <torch/torch.h>
 #include "benchmark/benchmark.h"
-#include "tde/details/multithreaded_id_transformer.h"
+#include "tde/details/naive_id_transformer.h"
 
 namespace tde::details {
 
-static void BM_MultiThreadedIDTransformer_Cold(benchmark::State& state) {
+static void BM_NaiveIDTransformer_Cold(benchmark::State& state) {
   using Tag = int32_t;
-  MultiThreadedIDTransformer<Tag> transformer(1e8, state.range(0));
+  NaiveIDTransformer<Tag> transformer(1e8, 1e8);
   torch::Tensor global_ids = torch::empty({1024, 1024}, torch::kLong);
   torch::Tensor cache_ids = torch::empty_like(global_ids);
   for (auto _ : state) {
@@ -23,16 +23,13 @@ static void BM_MultiThreadedIDTransformer_Cold(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_MultiThreadedIDTransformer_Cold)
-    ->Arg(1)
-    ->Arg(2)
-    ->Arg(4)
+BENCHMARK(BM_NaiveIDTransformer_Cold)
     ->Iterations(100)
     ->Unit(benchmark::kMillisecond);
 
-static void BM_MultiThreadedIDTransformer_Hot(benchmark::State& state) {
+static void BM_NaiveIDTransformer_Hot(benchmark::State& state) {
   using Tag = int32_t;
-  MultiThreadedIDTransformer<Tag> transformer(1e8, state.range(0));
+  NaiveIDTransformer<Tag> transformer(1e8, 1e8);
   torch::Tensor global_ids = torch::empty({1024, 1024}, torch::kLong);
   torch::Tensor cache_ids = torch::empty_like(global_ids);
   for (auto _ : state) {
@@ -49,10 +46,7 @@ static void BM_MultiThreadedIDTransformer_Hot(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_MultiThreadedIDTransformer_Hot)
-    ->Arg(1)
-    ->Arg(2)
-    ->Arg(4)
+BENCHMARK(BM_NaiveIDTransformer_Hot)
     ->Iterations(100)
     ->Unit(benchmark::kMillisecond);
 
