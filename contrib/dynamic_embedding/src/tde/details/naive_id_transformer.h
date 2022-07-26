@@ -6,28 +6,25 @@
 
 namespace tde::details {
 
-template <typename BitMask>
-struct BitMaskGroup {
-  BitMaskGroup(int64_t total_bits);
+template <typename T = uint32_t>
+struct Bitmap {
+  Bitmap(int64_t num_bits);
   int64_t NextFreeBit();
   void FreeBit(int64_t offset);
 
-  static constexpr int64_t B = sizeof(BitMask) * 8;
+  static constexpr int64_t num_bits_per_mask = sizeof(T) * 8;
 
-  const int64_t total_bits_;
-  const int64_t total_bitmasks_;
-  std::unique_ptr<BitMask[]> bitmasks_;
+  const int64_t num_bits_;
+  const int64_t num_masks_;
+  std::unique_ptr<T[]> masks_;
 
   int64_t next_free_bit_;
-  bool full_;
 };
 
-template <typename Tag, typename BitMask = uint32_t>
+template <typename Tag, typename T = uint32_t>
 class NaiveIDTransformer {
  public:
-  NaiveIDTransformer(
-      const int64_t num_embedding,
-      const int64_t embedding_offset);
+  NaiveIDTransformer(int64_t num_embedding, int64_t embedding_offset);
 
   template <typename Filter, typename Update, typename Fetch>
   int64_t Transform(
@@ -50,7 +47,7 @@ class NaiveIDTransformer {
   const int64_t embedding_offset_;
   std::unique_ptr<Tag[]> tags_;
   ska::flat_hash_map<int64_t, int64_t> global_id2cache_id_;
-  BitMaskGroup<BitMask> bitmasks_;
+  Bitmap<T> bitmap_;
 };
 
 } // namespace tde::details
