@@ -1,57 +1,59 @@
 #pragma once
-#include <string.h>
+#include <algorithm>
+#include <vector>
 
 namespace tde::details {
 
 template <typename T>
 inline Bitmap<T>::Bitmap(int64_t num_bits)
-    : num_bits_(num_bits),
-      num_masks_((num_bits + num_bits_per_mask - 1) / num_bits_per_mask),
-      masks_(new T[num_masks_]),
+    : num_total_bits_(num_bits),
+      num_values_((num_bits + num_bits_per_value - 1) / num_bits_per_value),
+      values_(new T[num_values_]),
       next_free_bit_(0) {
-  std::fill(masks_.get(), masks_.get() + num_masks_, -1);
+  std::fill(values_.get(), values_.get() + num_values_, -1);
 }
 
 template <typename T>
 inline int64_t Bitmap<T>::NextFreeBit() {
-  int64_t next_free_bit = next_free_bit_;
-  int64_t mask_offset = next_free_bit / num_bits_per_mask;
-  T mask = masks_[mask_offset];
-  masks_[mask_offset] = mask & (mask - 1);
-  while (masks_[mask_offset] == 0 && mask_offset < num_masks_) {
-    mask_offset++;
+  int64_t result = next_free_bit_;
+  int64_t offset = result / num_bits_per_value;
+  T value = values_[offset];
+  // set the last 1 bit to zero
+  values_[offset] = value & (value - 1);
+  while (values_[offset] == 0 && offset < num_values_) {
+    offset++;
   }
-  mask = masks_[mask_offset];
-  if (mask) {
-    if constexpr (num_bits_per_mask <= 32) {
-      next_free_bit_ = mask_offset * num_bits_per_mask + __builtin_ctz(mask);
+  value = values_[offset];
+  if (C10_LIKELY(value)) {
+    if constexpr (num_bits_per_value <= 32) {
+      next_free_bit_ = offset * num_bits_per_value + __builtin_ctz(value);
     } else {
-      next_free_bit_ = mask_offset * num_bits_per_mask + __builtin_ctzll(mask);
+      next_free_bit_ = offset * num_bits_per_value + __builtin_ctzll(value);
     }
   } else {
-    next_free_bit_ = num_bits_;
+    next_free_bit_ = num_total_bits_;
   }
 
-  return next_free_bit;
+  return result;
 }
 
 template <typename T>
 inline void Bitmap<T>::FreeBit(int64_t offset) {
-  int64_t mask_offset = offset / num_bits_per_mask;
-  int64_t bit_offset = offset % num_bits_per_mask;
-  masks_[mask_offset] |= 1 << bit_offset;
-  if (offset < next_free_bit_) {
-    next_free_bit_ = offset;
-  }
+  int64_t mask_offset = offset / num_bits_per_value;
+  int64_t bit_offset = offset % num_bits_per_value;
+  values_[mask_offset] |= 1 << bit_offset;
+  next_free_bit_ = std::min(offset, next_free_bit_);
+}
+template <typename T>
+inline bool Bitmap<T>::Full() const {
+  return next_free_bit_ >= num_total_bits_;
 }
 
 template <typename Tag, typename T>
 inline NaiveIDTransformer<Tag, T>::NaiveIDTransformer(
     int64_t num_embedding,
     int64_t embedding_offset)
-    : num_embedding_(num_embedding),
-      embedding_offset_(embedding_offset),
-      bitmap_(num_embedding) {}
+    : embedding_offset_(embedding_offset), bitmap_(num_embedding) {}
 
 template <typename Tag, typename T>
 template <typename Filter, typename Update, typename Fetch>
@@ -76,7 +78,7 @@ inline int64_t NaiveIDTransformer<Tag, T>::Transform(
           update(iter->second.tag_, global_id, cache_id + embedding_offset_);
     } else {
       // The transformer is full.
-      if (bitmap_.next_free_bit_ >= bitmap_.num_bits_) {
+      if (C10_UNLIKELY(bitmap_.Full())) {
         break;
       }
       cache_id = bitmap_.NextFreeBit();
@@ -93,7 +95,7 @@ inline int64_t NaiveIDTransformer<Tag, T>::Transform(
 template <typename Tag, typename T>
 template <typename Callback>
 inline void NaiveIDTransformer<Tag, T>::ForEach(Callback callback) {
-  for (auto [global_id, value] : global_id2cache_value_) {
+  for (auto&& [global_id, value] : global_id2cache_value_) {
     callback(global_id, value.cache_id_, value.tag_);
   }
 }
