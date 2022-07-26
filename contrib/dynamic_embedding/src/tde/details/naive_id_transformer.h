@@ -26,7 +26,7 @@ inline void NoFetch(int64_t global_id, int64_t cache_id) {}
 
 template <typename T = uint32_t>
 struct Bitmap {
-  Bitmap(int64_t num_bits);
+  explicit Bitmap(int64_t num_bits);
   int64_t NextFreeBit();
   void FreeBit(int64_t offset);
 
@@ -62,10 +62,14 @@ class NaiveIDTransformer {
   void Evict(tcb::span<const int64_t> global_ids);
 
  private:
+  struct CacheValue {
+    int64_t cache_id_;
+    Tag tag_;
+  };
+
   const int64_t num_embedding_;
   const int64_t embedding_offset_;
-  std::unique_ptr<Tag[]> tags_;
-  ska::flat_hash_map<int64_t, int64_t> global_id2cache_id_;
+  ska::flat_hash_map<int64_t, CacheValue> global_id2cache_value_;
   Bitmap<T> bitmap_;
 };
 
