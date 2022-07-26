@@ -37,6 +37,9 @@ class BitScanner {
  private:
   std::unique_ptr<uint64_t[]> array;
   uint16_t size_;
+
+  // if bit_idx > 64, incr array_idx
+  void CouldCarryBitIndexToArrayIndex();
 };
 
 class RandomBitsGenerator {
@@ -56,6 +59,7 @@ class RandomBitsGenerator {
  private:
   BitScanner scanner_;
   std::mt19937_64 engine_;
+  void ResetScanner();
 };
 
 } // namespace tde::details
