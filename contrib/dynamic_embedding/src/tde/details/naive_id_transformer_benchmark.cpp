@@ -13,10 +13,7 @@ static void BM_NaiveIDTransformer_Cold(benchmark::State& state) {
     global_ids.random_(1e10, 2e10);
     transformer.Transform(
         tcb::span{global_ids.template data_ptr<int64_t>(), global_ids.numel()},
-        tcb::span{cache_ids.template data_ptr<int64_t>(), cache_ids.numel()},
-        [](int64_t global_id) { return true; },
-        [](Tag tag, int64_t global_id, int64_t cache_id) { return tag; },
-        [](int64_t global_id, int64_t cache_id) {});
+        tcb::span{cache_ids.template data_ptr<int64_t>(), cache_ids.numel()});
   }
 }
 
@@ -33,10 +30,7 @@ static void BM_NaiveIDTransformer_Hot(benchmark::State& state) {
     global_ids.random_(1e6, 2e6);
     transformer.Transform(
         tcb::span{global_ids.template data_ptr<int64_t>(), global_ids.numel()},
-        tcb::span{cache_ids.template data_ptr<int64_t>(), cache_ids.numel()},
-        [](int64_t global_id) { return true; },
-        [](Tag tag, int64_t global_id, int64_t cache_id) { return tag; },
-        [](int64_t global_id, int64_t cache_id) {});
+        tcb::span{cache_ids.template data_ptr<int64_t>(), cache_ids.numel()});
   }
 }
 

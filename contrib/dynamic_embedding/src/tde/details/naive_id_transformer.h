@@ -6,6 +6,24 @@
 
 namespace tde::details {
 
+namespace transform_default {
+
+inline bool NoFilter(int64_t global_id) {
+  return true;
+}
+
+template <typename Tag>
+inline Tag NoUpdate(
+    std::optional<Tag> tag,
+    int64_t global_id,
+    int64_t cache_id) {
+  return tag.value_or(Tag{});
+};
+
+inline void NoFetch(int64_t global_id, int64_t cache_id) {}
+
+} // namespace transform_default
+
 template <typename T = uint32_t>
 struct Bitmap {
   Bitmap(int64_t num_bits);
@@ -26,15 +44,16 @@ class NaiveIDTransformer {
  public:
   NaiveIDTransformer(int64_t num_embedding, int64_t embedding_offset);
 
-  template <typename Filter, typename Update, typename Fetch>
+  template <
+      typename Filter = decltype(transform_default::NoFilter),
+      typename Update = decltype(transform_default::NoUpdate<Tag>),
+      typename Fetch = decltype(transform_default::NoFetch)>
   int64_t Transform(
       tcb::span<const int64_t> global_ids,
       tcb::span<int64_t> cache_ids,
-      Filter filter = [](int64_t global_id) -> bool { return true; },
-      Update update = [](Tag tag, int64_t global_id, int64_t cache_id) -> Tag {
-        return tag;
-      },
-      Fetch fetch = [](int64_t global_id, int64_t cache_id) {});
+      Filter filter = transform_default::NoFilter,
+      Update update = transform_default::NoUpdate<Tag>,
+      Fetch fetch = transform_default::NoFetch);
 
   template <typename Callback>
   void ForEach(

@@ -4,7 +4,7 @@
 namespace tde::details {
 
 template <typename T>
-Bitmap<T>::Bitmap(int64_t num_bits)
+inline Bitmap<T>::Bitmap(int64_t num_bits)
     : num_bits_(num_bits),
       num_masks_((num_bits + num_bits_per_mask - 1) / num_bits_per_mask),
       masks_(new T[num_masks_]),
@@ -13,7 +13,7 @@ Bitmap<T>::Bitmap(int64_t num_bits)
 }
 
 template <typename T>
-int64_t Bitmap<T>::NextFreeBit() {
+inline int64_t Bitmap<T>::NextFreeBit() {
   int64_t next_free_bit = next_free_bit_;
   int64_t mask_offset = next_free_bit / num_bits_per_mask;
   T mask = masks_[mask_offset];
@@ -36,7 +36,7 @@ int64_t Bitmap<T>::NextFreeBit() {
 }
 
 template <typename T>
-void Bitmap<T>::FreeBit(int64_t offset) {
+inline void Bitmap<T>::FreeBit(int64_t offset) {
   int64_t mask_offset = offset / num_bits_per_mask;
   int64_t bit_offset = offset % num_bits_per_mask;
   masks_[mask_offset] |= 1 << bit_offset;
@@ -46,7 +46,7 @@ void Bitmap<T>::FreeBit(int64_t offset) {
 }
 
 template <typename Tag, typename T>
-NaiveIDTransformer<Tag, T>::NaiveIDTransformer(
+inline NaiveIDTransformer<Tag, T>::NaiveIDTransformer(
     int64_t num_embedding,
     int64_t embedding_offset)
     : num_embedding_(num_embedding),
@@ -56,7 +56,7 @@ NaiveIDTransformer<Tag, T>::NaiveIDTransformer(
 
 template <typename Tag, typename T>
 template <typename Filter, typename Update, typename Fetch>
-int64_t NaiveIDTransformer<Tag, T>::Transform(
+inline int64_t NaiveIDTransformer<Tag, T>::Transform(
     tcb::span<const int64_t> global_ids,
     tcb::span<int64_t> cache_ids,
     Filter filter,
@@ -73,18 +73,20 @@ int64_t NaiveIDTransformer<Tag, T>::Transform(
     int64_t cache_id;
     if (iter != global_id2cache_id_.end()) {
       cache_id = iter->second;
+      tags_[cache_id] =
+          update(tags_[cache_id], global_id, cache_id + embedding_offset_);
     } else {
       // The transformer is full.
       if (bitmap_.next_free_bit_ >= bitmap_.num_bits_) {
         break;
       }
       cache_id = bitmap_.NextFreeBit();
+      tags_[cache_id] =
+          update(std::nullopt, global_id, cache_id + embedding_offset_);
       global_id2cache_id_.emplace(global_id, cache_id);
       fetch(global_id, cache_id + embedding_offset_);
     }
     cache_ids[i] = cache_id + embedding_offset_;
-    tags_[cache_id] =
-        update(tags_[cache_id], global_id, cache_id + embedding_offset_);
     num_transformed++;
   }
   return num_transformed;
@@ -92,7 +94,7 @@ int64_t NaiveIDTransformer<Tag, T>::Transform(
 
 template <typename Tag, typename T>
 template <typename Callback>
-void NaiveIDTransformer<Tag, T>::ForEach(Callback callback) {
+inline void NaiveIDTransformer<Tag, T>::ForEach(Callback callback) {
   for (auto [global_id, cache_id] : global_id2cache_id_) {
     Tag tag = tags_[cache_id];
     callback(global_id, cache_id, tag);
@@ -100,7 +102,8 @@ void NaiveIDTransformer<Tag, T>::ForEach(Callback callback) {
 }
 
 template <typename Tag, typename T>
-void NaiveIDTransformer<Tag, T>::Evict(tcb::span<const int64_t> global_ids) {
+inline void NaiveIDTransformer<Tag, T>::Evict(
+    tcb::span<const int64_t> global_ids) {
   for (const int64_t global_id : global_ids) {
     auto iter = global_id2cache_id_.find(global_id);
     if (iter == global_id2cache_id_.end()) {
