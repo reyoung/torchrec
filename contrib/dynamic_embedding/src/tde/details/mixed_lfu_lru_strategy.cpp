@@ -1,5 +1,6 @@
 #include "mixed_lfu_lru_strategy.h"
 #include <queue>
+#include <algorithm>
 
 namespace tde::details {
 MixedLFULRUStrategy::MixedLFULRUStrategy(uint16_t min_used_freq_power)
