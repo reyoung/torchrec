@@ -13,7 +13,6 @@ Transformer DefaultCreator(int64_t num_embedding) {
   return Transformer(num_embedding);
 }
 } // namespace transform_default
-
 template <typename UnderlyingTransformer>
 class MultiThreadedIDTransformer {
  public:
