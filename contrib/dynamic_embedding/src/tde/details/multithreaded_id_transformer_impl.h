@@ -2,8 +2,8 @@
 #include "torch/torch.h"
 namespace tde::details {
 
-template <typename Tag>
-MultiThreadedIDTransformer<Tag>::MultiThreadedIDTransformer(
+template <typename T>
+MultiThreadedIDTransformer<T>::MultiThreadedIDTransformer(
     int64_t num_embedding,
     size_t num_threads)
     : num_threads_(num_threads), thread_pool_(num_threads) {
@@ -20,9 +20,9 @@ MultiThreadedIDTransformer<Tag>::MultiThreadedIDTransformer(
   }
 }
 
-template <typename Tag>
+template <typename T>
 template <typename Update, typename Fetch>
-int64_t MultiThreadedIDTransformer<Tag>::Transform(
+int64_t MultiThreadedIDTransformer<T>::Transform(
     tcb::span<const int64_t> global_ids,
     tcb::span<int64_t> cache_ids,
     Update update,
@@ -52,12 +52,32 @@ int64_t MultiThreadedIDTransformer<Tag>::Transform(
   return num_transformed;
 }
 
-template <typename Tag>
-void MultiThreadedIDTransformer<Tag>::Evict(
-    tcb::span<const int64_t> global_ids) {
+template <typename T>
+void MultiThreadedIDTransformer<T>::Evict(tcb::span<const int64_t> global_ids) {
   for (size_t i = 0; i < num_threads_; ++i) {
     transformers_[i].Evict(global_ids);
   }
+}
+
+template <typename T>
+MoveOnlyFunction<std::optional<std::pair<int64_t, typename T::lxu_record_t>>()>
+MultiThreadedIDTransformer<T>::CreateIDVisitor() {
+  auto iter = transformers_.begin();
+  MoveOnlyFunction<std::optional<std::pair<int64_t, LXURecord>>()> id_visitor =
+      iter->CreateIDVisitor();
+  return [iter, this, id_visitor = std::move(id_visitor)]() mutable {
+    auto opt = id_visitor();
+    while (!opt.has_value()) {
+      iter++;
+      if (iter != transformers_.end()) {
+        id_visitor = std::move(iter->CreateIDVisitor());
+        opt = id_visitor();
+      } else {
+        return opt;
+      }
+    }
+    return opt;
+  };
 }
 
 } // namespace tde::details

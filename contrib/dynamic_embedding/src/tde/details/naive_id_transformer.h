@@ -3,6 +3,7 @@
 #include <memory>
 #include <optional>
 #include "tcb/span.hpp"
+#include "tde/details/move_only_function.h"
 
 namespace tde::details {
 
@@ -108,6 +109,9 @@ class NaiveIDTransformer {
           [](int64_t global_id, int64_t cache_id, LXURecord tag) {});
 
   void Evict(tcb::span<const int64_t> global_ids);
+
+  MoveOnlyFunction<std::optional<std::pair<int64_t, LXURecord>>()>
+  CreateIDVisitor();
 
  private:
   struct CacheValue {
