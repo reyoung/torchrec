@@ -11,7 +11,7 @@ class Fetcher {
   /**
    * Fetch parameter and optimizer states from ParamServer.
    * @param global_ids global ids to fetch
-   * @param num_optimizer_states number of optimzier stats to fetch
+   * @param num_optimizer_states number of optimizer stats to fetch
    * @param type data type
    * @param on_fetch_complete  fetch complete callback. The parameter is
    * a vector, the vector's size is equal to global_ids.size().
@@ -21,6 +21,8 @@ class Fetcher {
    * shape of each global id can be different in some algorithm.
    */
   void Fetch(
+      std::string table_name,
+      std::vector<int64_t> col_ids,
       tcb::span<const int64_t> global_ids,
       uint32_t num_optimizer_states,
       torch::ScalarType type,
