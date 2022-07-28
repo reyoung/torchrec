@@ -10,12 +10,11 @@ IDTransformer::IDTransformer(int64_t num_embedding, nlohmann::json json)
           json_["id_transformer"]),
       num_ids_to_fetch_(0) {}
 
-int64_t IDTransformer::Transform(
+std::tuple<int64_t, torch::Tensor> IDTransformer::Transform(
     torch::Tensor global_ids,
     torch::Tensor cache_ids) {
-  TORCH_CHECK(num_ids_to_fetch_.load() == 0);
   ids_to_fetch_.resize(2 * global_ids.numel());
-  return transformer_.Transform(
+  int64_t num_transformed = transformer_.Transform(
       tcb::span{
           global_ids.template data_ptr<int64_t>(),
           static_cast<size_t>(global_ids.numel())},
@@ -27,12 +26,9 @@ int64_t IDTransformer::Transform(
         ids_to_fetch_[2 * idx] = global_id;
         ids_to_fetch_[2 * idx + 1] = cache_id;
       });
-}
-
-torch::Tensor IDTransformer::GetIDsToFetch() {
   int64_t num_ids_to_fetch = num_ids_to_fetch_.load();
   if (num_ids_to_fetch == 0) {
-    return torch::Tensor{};
+    return {num_transformed, torch::Tensor{}};
   }
   torch::Tensor ids_to_fetch = torch::from_blob(
                                    ids_to_fetch_.data(),
@@ -40,7 +36,7 @@ torch::Tensor IDTransformer::GetIDsToFetch() {
                                    torch::dtype(torch::kLong))
                                    .clone();
   num_ids_to_fetch_.store(0);
-  return ids_to_fetch;
+  return {num_transformed, ids_to_fetch};
 }
 
 } // namespace tde

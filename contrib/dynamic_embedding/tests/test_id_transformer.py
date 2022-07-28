@@ -47,7 +47,7 @@ class TestIDTransformer(unittest.TestCase):
         shape = (1024,)
         transformer = IDTransformer(
             num_embedding,
-            id_transformer={
+            transform_config={
                 "type": "thread",
                 "underlying": {"type": "naive"},
                 "num_threads": num_threads,
@@ -57,14 +57,13 @@ class TestIDTransformer(unittest.TestCase):
         global_ids.random_(0, 512)
 
         cache_ids = torch.empty_like(global_ids)
-        num_transformed = transformer.transform(global_ids, cache_ids)
+        num_transformed, ids_to_fetch = transformer.transform(global_ids, cache_ids)
         self.assertEqual(num_transformed, global_ids.numel())
 
         python_transformer = PythonIdTransformer(num_embedding, num_threads)
         python_cache_ids = python_transformer.transform(global_ids)
         self.assertTrue(torch.all(cache_ids == python_cache_ids))
 
-        ids_to_fetch = transformer.get_ids_to_fetch()
         ids_map = {global_id: cache_id for global_id, cache_id in ids_to_fetch.tolist()}
         for global_id, cache_id in zip(global_ids.tolist(), cache_ids.tolist()):
             self.assertTrue(global_id in ids_map)

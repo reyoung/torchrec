@@ -8,8 +8,9 @@ namespace tde {
 class IDTransformer : public torch::CustomClassHolder {
  public:
   IDTransformer(int64_t num_embeddings, nlohmann::json json);
-  int64_t Transform(torch::Tensor global_ids, torch::Tensor cache_ids);
-  torch::Tensor GetIDsToFetch();
+  std::tuple<int64_t, torch::Tensor> Transform(
+      torch::Tensor global_ids,
+      torch::Tensor cache_ids);
 
  private:
   nlohmann::json json_;

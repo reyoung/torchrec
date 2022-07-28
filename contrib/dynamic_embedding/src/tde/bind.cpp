@@ -8,7 +8,6 @@ TORCH_LIBRARY(tde, m) {
         return c10::make_intrusive<IDTransformer>(
             num_embedding, std::move(json));
       }))
-      .def("transform", &IDTransformer::Transform)
-      .def("get_ids_to_fetch", &IDTransformer::GetIDsToFetch);
+      .def("transform", &IDTransformer::Transform);
 }
 } // namespace tde

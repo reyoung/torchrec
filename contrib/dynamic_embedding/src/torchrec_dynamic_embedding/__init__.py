@@ -10,16 +10,18 @@ except Exception as ex:
 
 
 class IDTransformer:
-    def __init__(self, num_embedding, **kwargs):
-        if "lxu_strategy" not in kwargs:
-            kwargs["lxu_strategy"] = {"type": "mixed_lru_lfu"}
-        if "id_transformer" not in kwargs:
-            kwargs["id_transformer"] = {"type": "naive"}
-        config = json.dumps(kwargs)
+    def __init__(self, num_embedding, eviction_config={}, transform_config={}):
+        if not eviction_config:
+            eviction_config = {"type": "mixed_lru_lfu"}
+        if not transform_config:
+            transform_config = {"type": "naive"}
+        config = json.dumps(
+            {
+                "lxu_strategy": eviction_config,
+                "id_transformer": transform_config,
+            }
+        )
         self._transformer = torch.classes.tde.IDTransformer(num_embedding, config)
 
     def transform(self, global_ids, cache_ids):
         return self._transformer.transform(global_ids, cache_ids)
-
-    def get_ids_to_fetch(self):
-        return self._transformer.get_ids_to_fetch()
