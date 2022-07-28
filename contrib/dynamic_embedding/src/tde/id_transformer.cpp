@@ -2,12 +2,19 @@
 
 namespace tde {
 
-IDTransformer::IDTransformer(int64_t num_embedding, size_t num_threads)
-    : transformer_(num_embedding, num_threads) {}
+IDTransformer::IDTransformer(int64_t num_embedding, nlohmann::json json)
+    : json_(std::move(json)),
+      transformer_(
+          std::move(details::LXUStrategy(json_["lxu_strategy"])),
+          num_embedding,
+          json_["id_transformer"]),
+      num_ids_to_fetch_(0) {}
 
 int64_t IDTransformer::Transform(
     torch::Tensor global_ids,
     torch::Tensor cache_ids) {
+  TORCH_CHECK(num_ids_to_fetch_.load() == 0);
+  ids_to_fetch_.resize(2 * global_ids.numel());
   return transformer_.Transform(
       tcb::span{
           global_ids.template data_ptr<int64_t>(),
@@ -15,13 +22,25 @@ int64_t IDTransformer::Transform(
       tcb::span{
           cache_ids.template data_ptr<int64_t>(),
           static_cast<size_t>(cache_ids.numel())},
-      [this](
-          std::optional<LXURecord> record,
-          int64_t global_id,
-          int64_t cache_id) { return strategy_.Transform(record); },
       [this](int64_t global_id, int64_t cache_id) {
-        return fetcher_.Fetch(global_id, cache_id);
+        int64_t idx = num_ids_to_fetch_.fetch_add(1);
+        ids_to_fetch_[2 * idx] = global_id;
+        ids_to_fetch_[2 * idx + 1] = cache_id;
       });
+}
+
+torch::Tensor IDTransformer::GetIDsToFetch() {
+  int64_t num_ids_to_fetch = num_ids_to_fetch_.load();
+  if (num_ids_to_fetch == 0) {
+    return torch::Tensor{};
+  }
+  torch::Tensor ids_to_fetch = torch::from_blob(
+                                   ids_to_fetch_.data(),
+                                   {num_ids_to_fetch, 2},
+                                   torch::dtype(torch::kLong))
+                                   .clone();
+  num_ids_to_fetch_.store(0);
+  return ids_to_fetch;
 }
 
 } // namespace tde
