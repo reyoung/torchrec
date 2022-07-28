@@ -6,7 +6,7 @@
 
 namespace tde::details {
 
-class Fetcher {
+class IO {
  public:
   /**
    * Fetch parameter and optimizer states from ParamServer.
@@ -20,13 +20,16 @@ class Fetcher {
    * Also, the tensor shape is [num_optimizer_states, embedding_size]. The
    * shape of each global id can be different in some algorithm.
    */
-  void Fetch(
+  void Pull(
       std::string table_name,
       tcb::span<const int64_t> col_ids,
       tcb::span<const int64_t> global_ids,
       uint32_t num_optimizer_states,
       torch::ScalarType type,
       MoveOnlyFunction<void(std::vector<torch::Tensor>)> on_fetch_complete);
+
+  // TODO: Decide push interface
+  void Push();
 };
 
 } // namespace tde::details
