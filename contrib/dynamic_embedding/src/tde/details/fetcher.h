@@ -22,7 +22,7 @@ class Fetcher {
    */
   void Fetch(
       std::string table_name,
-      std::vector<int64_t> col_ids,
+      tcb::span<const int64_t> col_ids,
       tcb::span<const int64_t> global_ids,
       uint32_t num_optimizer_states,
       torch::ScalarType type,
