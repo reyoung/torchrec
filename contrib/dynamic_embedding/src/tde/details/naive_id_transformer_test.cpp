@@ -80,7 +80,7 @@ TEST(tde, NaiveThreadedIDTransformer_Evict) {
   }
 }
 
-TEST(tde, NaiveThreadedIDTransformer_CreateIDVisitor) {
+TEST(tde, NaiveThreadedIDTransformer_CreateIterator) {
   using Tag = int32_t;
   NaiveIDTransformer<Tag, Bitmap<uint8_t>> transformer(16);
   const int64_t global_ids[5] = {100, 101, 100, 102, 101};
@@ -92,11 +92,11 @@ TEST(tde, NaiveThreadedIDTransformer_CreateIDVisitor) {
       });
   EXPECT_EQ(5, num_transformed);
 
-  auto id_visitor = transformer.CreateIDVisitor();
+  auto iterator = transformer.CreateIterator();
   for (size_t i = 0; i < 3; i++) {
-    EXPECT_TRUE(id_visitor().has_value());
+    EXPECT_TRUE(iterator().has_value());
   }
-  EXPECT_TRUE(!id_visitor().has_value());
+  EXPECT_TRUE(!iterator().has_value());
 }
 
 } // namespace tde::details

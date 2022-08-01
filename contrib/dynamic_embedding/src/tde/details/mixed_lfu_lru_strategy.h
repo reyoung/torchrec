@@ -68,14 +68,14 @@ class MixedLFULRUStrategy {
 
   /**
    * Analysis all ids and returns the num_elems that are most need to evict.
-   * @param id_visitor Returns each global_id to ExtValue pair. Returns nullopt
+   * @param iterator Returns each global_id to ExtValue pair. Returns nullopt
    * when at ends.
    * @param num_to_evict
    * @return
    */
   static std::vector<int64_t> Evict(
       MoveOnlyFunction<std::optional<std::pair<int64_t, lxu_record_t>>()>
-          id_visitor,
+          iterator,
       uint64_t num_to_evict);
 
   // Record should only be used in unittest or internally.

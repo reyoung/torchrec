@@ -121,7 +121,7 @@ inline void NaiveIDTransformer<LXURecord, T>::Evict(
 
 template <typename LXURecord, typename T>
 inline MoveOnlyFunction<std::optional<std::pair<int64_t, LXURecord>>()>
-NaiveIDTransformer<LXURecord, T>::CreateIDVisitor() {
+NaiveIDTransformer<LXURecord, T>::CreateIterator() {
   auto iter = global_id2cache_value_.begin();
   return [iter, this]() mutable {
     if (iter != global_id2cache_value_.end()) {

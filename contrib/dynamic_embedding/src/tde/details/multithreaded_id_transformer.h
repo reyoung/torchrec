@@ -81,7 +81,7 @@ class MultiThreadedIDTransformer {
   void Evict(tcb::span<const int64_t> global_ids);
 
   MoveOnlyFunction<std::optional<std::pair<int64_t, lxu_record_t>>()>
-  CreateIDVisitor();
+  CreateIterator();
 
  private:
   size_t num_threads_;

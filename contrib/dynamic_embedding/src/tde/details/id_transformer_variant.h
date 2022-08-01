@@ -28,11 +28,11 @@ struct LXUStrategy {
         var_);
   }
 
-  template <typename IDVisitor>
-  std::vector<int64_t> Evict(IDVisitor id_visitor, uint64_t num_to_evict) {
+  template <typename Iterator>
+  std::vector<int64_t> Evict(Iterator iterator, uint64_t num_to_evict) {
     return std::visit(
-        [&, id_visitor = std::move(id_visitor)](auto& s) mutable {
-          return s.Evict(std::move(id_visitor), num_to_evict);
+        [&, iterator = std::move(iterator)](auto& s) mutable {
+          return s.Evict(std::move(iterator), num_to_evict);
         },
         var_);
   }
@@ -110,7 +110,7 @@ inline std::vector<int64_t> IDTransformer::Evict(int64_t num_to_evict) {
   // Get the ids to evict from lxu strategy.
   std::vector<int64_t> ids_to_evict = std::visit(
       [&](auto&& s) {
-        return strategy_.Evict(s.CreateIDVisitor(), num_to_evict);
+        return strategy_.Evict(s.CreateIterator(), num_to_evict);
       },
       var_);
   // get the cache id of the ids to evict.

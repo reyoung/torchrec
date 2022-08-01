@@ -47,11 +47,11 @@ struct SortItems {
 
 std::vector<int64_t> MixedLFULRUStrategy::Evict(
     MoveOnlyFunction<std::optional<
-        std::pair<int64_t, MixedLFULRUStrategy::lxu_record_t>>()> id_visitor,
+        std::pair<int64_t, MixedLFULRUStrategy::lxu_record_t>>()> iterator,
     uint64_t num_to_evict) {
   std::priority_queue<SortItems> items;
   while (true) {
-    auto val = id_visitor();
+    auto val = iterator();
     if (!val.has_value()) {
       break;
     }

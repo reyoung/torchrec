@@ -126,7 +126,7 @@ class NaiveIDTransformer {
   void Evict(tcb::span<const int64_t> global_ids);
 
   MoveOnlyFunction<std::optional<std::pair<int64_t, LXURecord>>()>
-  CreateIDVisitor();
+  CreateIterator();
 
  private:
   struct CacheValue {
