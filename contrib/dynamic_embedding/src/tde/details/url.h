@@ -76,6 +76,8 @@ struct Url {
 
 } // namespace rules
 
+// basically copied from lexy_ext::error_reporter
+// instead of report error to stderr, report it to oss;
 struct ErrorCollector {
   std::ostringstream& oss_;
   struct _sink {
@@ -96,7 +98,8 @@ struct ErrorCollector {
           std::ostream_iterator<char>(oss_),
           context,
           error,
-          {lexy::visualize_fancy});
+          {lexy::visualization_flags::visualize_use_symbols |
+           lexy::visualization_flags::visualize_use_unicode});
       ++_count;
     }
 
