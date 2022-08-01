@@ -76,7 +76,9 @@ void IO::Pull(
       .scalar_type_ = type,
       .num_optimizer_states_ = num_optimizer_states,
   });
-  ctx->tensors_.resize(global_ids.size());
+  ctx->tensors_.resize(
+      global_ids.size() *
+      std::max(col_ids.size(), static_cast<size_t>(col_ids.size())));
 
   IOPullParameter param{
       .table_name_ = table_name.c_str(),
