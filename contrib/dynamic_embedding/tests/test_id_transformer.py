@@ -91,6 +91,6 @@ class TestIDTransformer(unittest.TestCase):
 
         num_to_evict = 2
         evicted_tensor = transformer.evict(num_to_evict)
-        self.assertEqual(num_to_evict, evicted_tensor.numel())
+        self.assertEqual(num_to_evict, evicted_tensor.shape[0])
         evicted_ids = sorted(evicted_tensor.tolist())
-        self.assertEqual(evicted_ids, [2, 4])
+        self.assertEqual(evicted_ids, [[2, 0], [4, 1]])
