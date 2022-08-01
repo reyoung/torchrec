@@ -34,15 +34,8 @@ TEST(TDE, url_host) {
   //  ASSERT_FALSE(parse.value().password_.has_value());
 }
 
-TEST(TDE, match_all) {
-  auto ipt = lexy::string_input(std::string_view("www.qq.com"));
-  auto parse = lexy::parse<DefaultParamRule>(ipt, lexy_ext::report_error);
-  ASSERT_TRUE(parse.has_value());
-  ASSERT_EQ("www.qq.com", parse.value());
-}
-
 TEST(TDE, url) {
-  auto url = ParseUrl<DefaultParamRule>("www.qq.com");
+  auto url = ParseUrl("www.qq.com");
   ASSERT_TRUE(url.has_value());
   ASSERT_EQ(url.value().host_, "www.qq.com");
 }
