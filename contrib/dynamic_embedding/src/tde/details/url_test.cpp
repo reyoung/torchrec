@@ -35,9 +35,11 @@ TEST(TDE, url_host) {
 }
 
 TEST(TDE, url) {
-  auto url = ParseUrl("www.qq.com");
+  auto url = ParseUrl("www.qq.com/?a=b&&c=d");
   ASSERT_TRUE(url.has_value());
   ASSERT_EQ(url.value().host_, "www.qq.com");
+  ASSERT_TRUE(url.value().param_.has_value());
+  ASSERT_EQ("a=b&&c=d", url.value().param_.value());
 }
 
 } // namespace tde::details::url_parser::rules

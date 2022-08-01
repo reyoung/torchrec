@@ -58,12 +58,17 @@ struct Host {
   static constexpr auto value = lexy::as_string<std::string>;
 };
 
+struct Param {
+  static constexpr auto rule = dsl::capture(dsl::any);
+  static constexpr auto value = lexy::as_string<std::string>;
+};
+
 struct Url {
   static constexpr auto rule =
       dsl::opt(dsl::lookahead(dsl::lit_c<'@'>, dsl::newline) >> dsl::p<Auth>) +
       dsl::p<Host> +
       dsl::opt(dsl::lit_c<':'> >> dsl::integer<uint16_t>(dsl::digits<>)) +
-      dsl::opt(dsl::lit_c<'/'> >> dsl::any);
+      dsl::opt(dsl::lit_c<'/'> >> dsl::lit_c<'?'> >> dsl::p<Param>) + dsl::eol;
 
   static constexpr auto value = lexy::construct<UrlValue>;
 };
