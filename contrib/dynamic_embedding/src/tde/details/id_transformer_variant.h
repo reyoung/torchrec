@@ -28,6 +28,17 @@ struct LXUStrategy {
         var_);
   }
 
+  template <typename IDVisitor>
+  std::vector<int64_t> Evict(IDVisitor id_visitor, uint64_t num_to_evict) {
+    std::vector<int64_t> result;
+    std::visit(
+        [&, id_visitor = std::move(id_visitor)](auto& s) mutable {
+          result = s.Evict(std::move(id_visitor), num_to_evict);
+        },
+        var_);
+    return std::move(result);
+  }
+
   Variant var_;
 };
 
@@ -53,6 +64,8 @@ struct IDTransformer {
       tcb::span<const int64_t> global_ids,
       tcb::span<int64_t> cache_ids,
       Fetch fetch = transform_default::NoFetch);
+
+  std::vector<int64_t> Evict(int64_t num_to_evict);
 
   LXUStrategy strategy_;
   Variant var_;
@@ -93,6 +106,18 @@ inline int64_t IDTransformer::Transform(
         var_);
   });
   return processed;
+}
+
+inline std::vector<int64_t> IDTransformer::Evict(int64_t num_to_evict) {
+  std::vector<int64_t> ids_to_evict;
+  std::visit(
+      [&](auto& s) {
+        ids_to_evict = strategy_.Evict(s.CreateIDVisitor(), num_to_evict);
+      },
+      var_);
+
+  std::visit([&](auto& s) { s.Evict(ids_to_evict); }, var_);
+  return std::move(ids_to_evict);
 }
 
 } // namespace tde::details
