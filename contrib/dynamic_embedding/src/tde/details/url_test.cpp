@@ -31,15 +31,17 @@ TEST(TDE, url_host) {
   auto parse = lexy::parse<rules::Host>(ipt, lexy_ext::report_error);
   ASSERT_TRUE(parse.has_value());
   ASSERT_EQ("www.qq.com", parse.value());
-  //  ASSERT_FALSE(parse.value().password_.has_value());
 }
 
 TEST(TDE, url) {
   auto url = ParseUrl("www.qq.com/?a=b&&c=d");
-  ASSERT_TRUE(url.has_value());
-  ASSERT_EQ(url.value().host_, "www.qq.com");
-  ASSERT_TRUE(url.value().param_.has_value());
-  ASSERT_EQ("a=b&&c=d", url.value().param_.value());
+  ASSERT_EQ(url.host_, "www.qq.com");
+  ASSERT_TRUE(url.param_.has_value());
+  ASSERT_EQ("a=b&&c=d", url.param_.value());
+}
+
+TEST(TDE, bad_url) {
+  ASSERT_ANY_THROW([] { ParseUrl("blablah!@@"); }());
 }
 
 } // namespace tde::details::url_parser::rules

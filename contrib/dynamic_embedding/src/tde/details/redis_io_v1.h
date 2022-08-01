@@ -9,7 +9,7 @@ struct Option {
   struct ParseTag {};
 
  public:
-  std::string addr_;
+  std::string host_;
   std::string username_;
   std::string password_;
   uint16_t port_{6379};

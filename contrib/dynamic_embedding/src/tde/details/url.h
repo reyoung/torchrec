@@ -5,6 +5,7 @@
 #include "lexy/dsl.hpp"
 #include "lexy/input/string_input.hpp"
 #include "lexy_ext/report_error.hpp"
+#include "torch/torch.h"
 
 /**
  * A simple URL/extendable parser
@@ -75,15 +76,50 @@ struct Url {
 
 } // namespace rules
 
-inline std::optional<Url> ParseUrl(std::string_view url_str) {
+struct ErrorCollector {
+  std::ostringstream& oss_;
+  struct _sink {
+    std::size_t _count;
+    std::ostringstream& oss_;
+
+    using return_type = std::size_t;
+
+    template <
+        typename Production,
+        typename Input,
+        typename Reader,
+        typename Tag>
+    void operator()(
+        const lexy::error_context<Production, Input>& context,
+        const lexy::error<Reader, Tag>& error) {
+      lexy_ext::_detail::write_error(
+          std::ostream_iterator<char>(oss_),
+          context,
+          error,
+          {lexy::visualize_fancy});
+      ++_count;
+    }
+
+    std::size_t finish() && {
+      if (_count != 0)
+        std::fputs("\n", stderr);
+      return _count;
+    }
+  };
+
+  auto sink() const {
+    return _sink{0, oss_};
+  }
+};
+
+inline Url ParseUrl(std::string_view url_str) {
   // NOTE: cannot using rule = xxx here. It seems a bug of clang or lexy.
   auto input = lexy::string_input(url_str);
-  auto parsed = lexy::parse<rules::Url>(input, lexy_ext::report_error);
-  if (parsed.has_value()) {
-    return parsed.value();
-  } else {
-    return std::nullopt;
-  }
+  std::ostringstream oss;
+  ErrorCollector collector{oss};
+  auto parsed = lexy::parse<rules::Url>(input, collector);
+  TORCH_CHECK(parsed.has_value(), "parse url error %s", oss.str());
+  return std::move(parsed.value());
 }
 
 } // namespace tde::details::url_parser
