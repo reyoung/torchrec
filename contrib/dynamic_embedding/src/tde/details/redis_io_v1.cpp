@@ -456,7 +456,7 @@ void RedisV1::DoPush(
         gid,
         cid,
         os_id,
-        reinterpret_cast<uint8_t*>(push_ctx.data_) + beg,
+        reinterpret_cast<const uint8_t*>(push_ctx.data_) + beg,
         static_cast<size_t>(end - beg));
   });
 

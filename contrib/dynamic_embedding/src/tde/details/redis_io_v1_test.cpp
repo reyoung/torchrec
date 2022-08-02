@@ -35,5 +35,4 @@ TEST(TDE, redis_v1_push_pull) {
       .on_push_complete = +[](void* ctx) {},
   };
 }
-
 } // namespace tde::details::redis_v1
