@@ -171,7 +171,7 @@ struct Option {
   constexpr static auto value = lexy::construct<OptVar>;
 };
 
-struct Param {
+struct Options {
   constexpr static auto rule =
       dsl::list(dsl::p<Option>, dsl::sep(LEXY_LIT("&&")));
 
@@ -199,7 +199,7 @@ Option::Option(std::string_view config_str) {
     std::ostringstream err_oss_;
     url_parser::ErrorCollector collector{err_oss_};
 
-    auto result = lexy::parse<option_rules::Param>(
+    auto result = lexy::parse<option_rules::Options>(
         lexy::string_input(url.param_.value()), collector);
     auto err_str = err_oss_.str();
 
