@@ -1,6 +1,6 @@
 #include "tde/details/redis_io_v1.h"
+#include <iostream>
 #include <variant>
-#include <vector>
 #include "lexy/callback.hpp"
 #include "lexy/dsl.hpp"
 #include "tcb/span.hpp"
@@ -192,7 +192,10 @@ Option::Option(std::string_view config_str) {
 
     auto result = lexy::parse<option_rules::Param>(
         lexy::string_input(url.param_.value()), collector);
-    TORCH_CHECK(result.has_value(), "parse param error %s", err_oss_.str());
+    auto err_str = err_oss_.str();
+
+    TORCH_CHECK(
+        result.has_value() && err_str.empty(), "parse param error ", err_str);
 
     for (auto&& opt_var : result.value()) {
       std::visit(

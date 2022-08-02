@@ -17,6 +17,11 @@ TEST(TDE, redis_v1_Option) {
   ASSERT_TRUE(opt.prefix_.empty());
 }
 
+TEST(TDE, redis_v1_Option_ParseError) {
+  ASSERT_ANY_THROW(
+      Option::Parse("192.168.3.1:3948/?db=3&&no_opt=3000&&num_threads=2"));
+}
+
 struct PullContext {
   Notification* notification_;
   std::function<void(uint32_t, uint32_t, void*, uint32_t)> on_data_;
