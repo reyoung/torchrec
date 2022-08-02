@@ -50,9 +50,11 @@ if (TDE_WITH_TESTING)
     add_tde_benchmark(random_bits_generator_benchmark details/random_bits_generator_benchmark.cpp)
     add_tde_test(id_transformer_registry_test details/id_transformer_registry_test.cpp)
     add_tde_test(id_transformer_factory_test details/id_transformer_variant_test.cpp)
+    # TODO: Need start a empty redis-server on 127.0.0.1:6379 before run *redis*_test.
     add_tde_test(redis_io_v1_test details/redis_io_v1_test.cpp)
+    add_tde_test(io_redis_test details/io_redis_test.cpp)
     add_tde_test(url_test details/url_test.cpp)
     target_link_libraries(url_test foonathan::lexy::core)
     add_tde_test(notification_test details/notification_test.cpp)
-    add_tde_test(io_redis_test details/io_redis_test.cpp)
+
 endif ()
