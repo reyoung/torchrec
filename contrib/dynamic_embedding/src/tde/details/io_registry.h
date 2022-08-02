@@ -49,6 +49,7 @@ struct IOProvider {
   const char* type_;
   void* (*Initialize)(const char* cfg);
   void (*Pull)(void* instance, IOPullParameter cfg);
+  void (*Push)(void* instance, IOPushParameter cfg);
   void (*Finalize)(void*);
 };
 

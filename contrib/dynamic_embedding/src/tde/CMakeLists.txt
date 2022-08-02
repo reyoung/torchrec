@@ -1,6 +1,6 @@
 # tde_cpp_objs section, used by both unittests and tde_cpp.so
 add_library(tde_cpp_objs OBJECT id_transformer.cpp details/multithreaded_id_transformer.cpp
-        details/io.cpp  details/io_registry.cpp
+        details/io.cpp details/io_registry.cpp
         details/move_only_function.cpp details/thread_pool.cpp details/naive_id_transformer.cpp
         details/random_bits_generator.cpp details/mixed_lfu_lru_strategy.cpp
         details/clz_impl.cpp details/ctz_impl.cpp details/id_transformer_registry.cpp
@@ -54,4 +54,5 @@ if (TDE_WITH_TESTING)
     add_tde_test(url_test details/url_test.cpp)
     target_link_libraries(url_test foonathan::lexy::core)
     add_tde_test(notification_test details/notification_test.cpp)
+    add_tde_test(io_redis_test details/io_redis_test.cpp)
 endif ()
