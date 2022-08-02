@@ -18,19 +18,75 @@ struct PrefixOpt {
   std::string prefix_;
 };
 
-using OptVar = std::variant<NumThreadsOpt, DBOpt, PrefixOpt>;
+struct TimeoutMsOpt {
+  uint32_t timeout_;
+};
+
+struct HeartBeatMsOpt {
+  uint32_t heartbeat_;
+};
+
+struct RetryLimitOpt {
+  uint32_t limit_;
+};
+
+struct ChunkSizeOpt {
+  uint32_t chunk_size_;
+};
+
+using OptVar = std::variant<
+    NumThreadsOpt,
+    DBOpt,
+    PrefixOpt,
+    TimeoutMsOpt,
+    HeartBeatMsOpt,
+    RetryLimitOpt,
+    ChunkSizeOpt>;
+
+struct OptionSetter {
+  void operator()(Option* self, NumThreadsOpt opt) {
+    TORCH_CHECK(opt.num_threads_ != 0);
+    self->num_io_threads_ = opt.num_threads_;
+  }
+  void operator()(Option* self, DBOpt opt) {
+    self->db_ = opt.db_;
+  }
+  void operator()(Option* self, PrefixOpt opt) {
+    self->prefix_ = std::move(opt.prefix_);
+  }
+  void operator()(Option* self, TimeoutMsOpt opt) {
+    TORCH_CHECK(opt.timeout_ != 0);
+    self->timeout_ms_ = opt.timeout_;
+  }
+  void operator()(Option* self, HeartBeatMsOpt opt) {
+    TORCH_CHECK(opt.heartbeat_ != 0);
+    self->heart_beat_interval_ms_ = opt.heartbeat_;
+  }
+  void operator()(Option* self, RetryLimitOpt opt) {
+    TORCH_CHECK(opt.limit_ != 0);
+    self->retry_limit_ = opt.limit_;
+  }
+  void operator()(Option* self, ChunkSizeOpt opt) {
+    TORCH_CHECK(opt.chunk_size_ != 0);
+    self->chunk_size_ = opt.chunk_size_;
+  }
+};
 
 namespace option_rules {
 namespace dsl = lexy::dsl;
-struct NumThreads {
-  constexpr static auto rule = LEXY_LIT("num_threads=") >>
+struct Integer {
+  constexpr static auto rule =
       dsl::integer<uint32_t>(dsl::digits<>.no_leading_zero());
+  constexpr static auto value = lexy::construct<uint32_t>;
+};
+
+struct NumThreads {
+  constexpr static auto rule = LEXY_LIT("num_threads=") >> dsl::p<Integer>;
   constexpr static auto value = lexy::construct<NumThreadsOpt>;
 };
 
 struct DB {
-  constexpr static auto rule = LEXY_LIT("db=") >>
-      dsl::integer<uint32_t>(dsl::digits<>);
+  constexpr static auto rule = LEXY_LIT("db=") >> dsl::p<Integer>;
   constexpr static auto value = lexy::construct<DBOpt>;
 };
 
@@ -45,8 +101,64 @@ struct Prefix {
       });
 };
 
+struct Duration {
+  constexpr static auto rule =
+      dsl::integer<uint32_t>(dsl::digits<>.no_leading_zero()) >>
+      dsl::opt(LEXY_LIT(".") >> dsl::capture(dsl::digits<>)) >>
+      dsl::capture(
+          dsl::literal_set(LEXY_LIT("ms"), LEXY_LIT("s"), LEXY_LIT("m")));
+
+  constexpr static auto value = lexy::callback<uint32_t>(
+      [](auto&& dec, std::optional<lexy::lexeme<lexy::_prd>> fp, auto&& unit) {
+        double scale;
+        auto unit_sv = std::string_view{unit.data(), unit.size()};
+        if (unit_sv == "s") {
+          scale = 1000;
+        } else if (unit_sv == "m") {
+          scale = 1000 * 60;
+        } else if (unit_sv == "ms") {
+          scale = 1;
+        } else {
+          TORCH_CHECK(false, "unit should in [s, m, ms]");
+        }
+        double val = dec;
+        if (fp.has_value()) {
+          double scale_fp = 10.0;
+          for (auto& ch : fp.value()) {
+            val += (ch - '0') / scale_fp;
+            scale_fp *= 10;
+          }
+        }
+        val *= scale;
+        auto timeout_ = static_cast<uint32_t>(val);
+        return timeout_;
+      });
+};
+
+struct Timeout {
+  constexpr static auto rule = LEXY_LIT("timeout=") >> dsl::p<Duration>;
+  constexpr static auto value = lexy::construct<TimeoutMsOpt>;
+};
+
+struct HeartBeat {
+  constexpr static auto rule = LEXY_LIT("heartbeat=") >> dsl::p<Duration>;
+  constexpr static auto value = lexy::construct<HeartBeatMsOpt>;
+};
+
+struct RetryLimit {
+  constexpr static auto rule = LEXY_LIT("retry_limit=") >> dsl::p<Integer>;
+  constexpr static auto value = lexy::construct<RetryLimitOpt>;
+};
+
+struct ChunkSize {
+  constexpr static auto rule = LEXY_LIT("chunk_size=") >> dsl::p<Integer>;
+  constexpr static auto value = lexy::construct<ChunkSizeOpt>;
+};
+
 struct Option {
-  constexpr static auto rule = dsl::p<NumThreads> | dsl::p<DB> | dsl::p<Prefix>;
+  constexpr static auto rule = dsl::p<NumThreads> | dsl::p<DB> |
+      dsl::p<Prefix> | dsl::p<Timeout> | dsl::p<HeartBeat> |
+      dsl::p<RetryLimit> | dsl::p<ChunkSize>;
   constexpr static auto value = lexy::construct<OptVar>;
 };
 
@@ -85,15 +197,8 @@ Option::Option(std::string_view config_str) {
     for (auto&& opt_var : result.value()) {
       std::visit(
           [this](auto&& opt) {
-            using T = std::decay_t<decltype(opt)>;
-
-            if constexpr (std::is_same_v<T, NumThreadsOpt>) {
-              num_io_threads_ = opt.num_threads_;
-            } else if constexpr (std::is_same_v<T, DBOpt>) {
-              db_ = opt.db_;
-            } else {
-              prefix_ = std::move(opt.prefix_);
-            }
+            OptionSetter setter;
+            setter(this, std::move(opt));
           },
           opt_var);
     }
@@ -212,7 +317,6 @@ RedisV1::~RedisV1() {
     th.join();
   }
 }
-
 
 static uint32_t CalculateChunkSizeByGlobalIDs(
     uint32_t chunk_size,
