@@ -11,6 +11,7 @@ class Notification {
  public:
   void Done();
   void Wait();
+
   /**
    * Clear the set status.
    *

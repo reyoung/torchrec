@@ -56,5 +56,4 @@ if (TDE_WITH_TESTING)
     add_tde_test(url_test details/url_test.cpp)
     target_link_libraries(url_test foonathan::lexy::core)
     add_tde_test(notification_test details/notification_test.cpp)
-
 endif ()
