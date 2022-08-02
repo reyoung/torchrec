@@ -102,11 +102,16 @@ struct Prefix {
 };
 
 struct Duration {
+  struct UnknownUnit {
+    constexpr static auto name = "unknown unit";
+  };
+
   constexpr static auto rule =
       dsl::integer<uint32_t>(dsl::digits<>.no_leading_zero()) >>
       dsl::opt(LEXY_LIT(".") >> dsl::capture(dsl::digits<>)) >>
-      dsl::capture(
-          dsl::literal_set(LEXY_LIT("ms"), LEXY_LIT("s"), LEXY_LIT("m")));
+      (dsl::capture(
+           dsl::literal_set(LEXY_LIT("ms"), LEXY_LIT("s"), LEXY_LIT("m"))) |
+       dsl::error<UnknownUnit>);
 
   constexpr static auto value = lexy::callback<uint32_t>(
       [](auto&& dec, std::optional<lexy::lexeme<lexy::_prd>> fp, auto&& unit) {
