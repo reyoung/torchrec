@@ -66,10 +66,12 @@ class RedisV1 {
 
   void Pull(IOPullParameter param);
 
+  void Push(IOPushParameter param);
+
  private:
   void StartThread();
   void HeartBeat(redis::ContextPtr& connection);
-  redis::ContextPtr Connect() const;
+  [[nodiscard]] redis::ContextPtr Connect() const;
 
   void CheckReplyString(
       std::string_view label,
@@ -80,6 +82,11 @@ class RedisV1 {
   void DoFetch(
       uint32_t gid_offset,
       void* fetch_param,
+      redis::ContextPtr& connection) const;
+
+  void DoPush(
+      uint32_t gid_offset,
+      void* push_ctx,
       redis::ContextPtr& connection) const;
 
   Option opt_;

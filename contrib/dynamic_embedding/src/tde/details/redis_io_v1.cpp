@@ -3,6 +3,7 @@
 #include <vector>
 #include "lexy/callback.hpp"
 #include "lexy/dsl.hpp"
+#include "tcb/span.hpp"
 #include "tde/details/url.h"
 
 namespace tde::details::redis_v1 {
@@ -165,7 +166,7 @@ redis::ContextPtr RedisV1::Connect() const {
     connection =
         redis::ContextPtr(redisConnect(opt_.host_.c_str(), opt_.port_));
   } else {
-    struct timeval interval{};
+    struct timeval interval {};
     interval.tv_sec = opt_.timeout_ms_ / 1000;
     interval.tv_usec = opt_.timeout_ms_ % 1000 * 1000;
     connection = redis::ContextPtr(
@@ -242,6 +243,15 @@ void RedisV1::CheckReplyString(
       opt_.port_);
 }
 
+static uint32_t CalculateChunkSizeByGlobalIDs(
+    uint32_t chunk_size,
+    uint32_t num_cols,
+    uint32_t num_os) {
+  static constexpr uint32_t low = 1;
+  return std::max(
+      chunk_size / std::max(num_cols, low) / std::max(num_os, low), low);
+}
+
 struct RedisV1PullContext {
   std::atomic<uint32_t> num_complete_ids_{0};
   uint32_t chunk_size_;
@@ -259,10 +269,10 @@ struct RedisV1PullContext {
   void (*on_all_fetched_)(void* ctx);
 
   explicit RedisV1PullContext(uint32_t chunk_size, IOPullParameter param)
-      : chunk_size_(std::max(
-            static_cast<uint32_t>(1),
-            chunk_size / std::max(param.num_cols_, static_cast<uint32_t>(1)) /
-                param.num_optimizer_stats_)),
+      : chunk_size_(CalculateChunkSizeByGlobalIDs(
+            chunk_size,
+            param.num_cols_,
+            param.num_optimizer_stats_)),
         table_name_(param.table_name_),
         global_ids_(
             param.global_ids_,
@@ -352,9 +362,122 @@ void RedisV1::DoFetch(
     }
   });
 
-  if (fetch_param.num_complete_ids_.fetch_add(end - gid_offset) ==
-      end - gid_offset) { // last fetch complete
+  uint32_t n = end - gid_offset;
+  uint32_t target = fetch_param.global_ids_.size();
+
+  if (fetch_param.num_complete_ids_.fetch_add(n) + n ==
+      target) { // last fetch complete
     fetch_param.on_all_fetched_(fetch_param.on_complete_context_);
+    delete &fetch_param;
+  }
+}
+
+struct RedisV1PushContext {
+  std::atomic<uint32_t> num_complete_ids_{0};
+  uint32_t chunk_size_;
+  std::string table_name_;
+  tcb::span<const int64_t> global_ids_;
+  std::vector<int64_t> col_ids_;
+  tcb::span<const uint32_t> os_ids_;
+  tcb::span<const uint64_t> offsets_;
+  void* data_;
+  void* on_complete_context_;
+  void (*on_push_complete_)(void*);
+
+  RedisV1PushContext(uint32_t chunk_size, IOPushParameter param)
+      : chunk_size_(CalculateChunkSizeByGlobalIDs(
+            chunk_size,
+            param.num_cols_,
+            param.num_optimizer_stats_)),
+        table_name_(param.table_name_),
+        global_ids_(param.global_ids_, param.num_global_ids_),
+        os_ids_(param.optimizer_stats_ids_, param.num_optimizer_stats_),
+        offsets_(param.offsets_, param.num_offsets_),
+        data_(param.data_),
+        on_complete_context_(param.on_complete_context_),
+        on_push_complete_(param.on_push_complete) {
+    if (param.num_cols_ != 0) {
+      col_ids_ = std::vector<int64_t>(
+          param.col_ids_, param.col_ids_ + param.num_cols_);
+    } else {
+      col_ids_.emplace_back(-1);
+    }
+  }
+};
+
+void RedisV1::Push(IOPushParameter param) {
+  auto* ctx = new RedisV1PushContext(opt_.chunk_size_, param);
+  {
+    std::lock_guard<std::mutex> guard(this->jobs_mutex_);
+    for (uint32_t i = 0; i < param.num_global_ids_; i += ctx->chunk_size_) {
+      jobs_.emplace_back([i, ctx, this](redis::ContextPtr& connection) {
+        DoPush(i, ctx, connection);
+      });
+    }
+  }
+  jobs_not_empty_.notify_all();
+}
+void RedisV1::DoPush(
+    uint32_t gid_offset,
+    void* push_ctx_ptr,
+    redis::ContextPtr& connection) const {
+  auto& push_ctx = *reinterpret_cast<RedisV1PushContext*>(push_ctx_ptr);
+
+  uint32_t end = gid_offset + push_ctx.chunk_size_;
+  if (end > push_ctx.global_ids_.size()) {
+    end = push_ctx.global_ids_.size();
+  }
+
+  auto loop = [&](auto&& callback) {
+    for (uint32_t i = gid_offset; i < end; ++i) {
+      int64_t gid = push_ctx.global_ids_[i];
+      for (uint32_t j = 0; j < push_ctx.col_ids_.size(); ++j) {
+        int64_t cid = push_ctx.col_ids_[j];
+        for (uint32_t k = 0; k < push_ctx.os_ids_.size(); ++k) {
+          uint32_t os_id = push_ctx.os_ids_[k];
+
+          uint32_t offset = k + j * push_ctx.os_ids_.size() +
+              i * push_ctx.col_ids_.size() * push_ctx.os_ids_.size();
+          callback(offset, gid, cid, os_id);
+        }
+      }
+    }
+  };
+
+  loop([&](uint32_t o, int64_t gid, int64_t cid, uint32_t os_id) {
+    uint64_t beg = push_ctx.offsets_[o];
+    uint64_t end = push_ctx.offsets_[o + 1];
+
+    redisAppendCommand(
+        connection.get(),
+        "SET %s_table_%s_gid_%d_cid_%d_osid_%d %b",
+        opt_.prefix_.c_str(),
+        push_ctx.table_name_.c_str(),
+        gid,
+        cid,
+        os_id,
+        reinterpret_cast<uint8_t*>(push_ctx.data_) + beg,
+        static_cast<size_t>(end - beg));
+  });
+
+  void* replay_ptr;
+  loop([&](...) {
+    int status = redisGetReply(connection.get(), &replay_ptr);
+    TORCH_CHECK(
+        status != REDIS_ERR,
+        "get reply error: %s, from redis %s, %d",
+        connection->errstr,
+        opt_.host_,
+        opt_.port_);
+    redis::ReplyPtr reply(reinterpret_cast<redisReply*>(replay_ptr));
+    CheckReplyString("reply should be ok", connection, reply, "OK");
+  });
+
+  uint32_t n = end - gid_offset;
+  uint32_t target = push_ctx.global_ids_.size();
+  if (push_ctx.num_complete_ids_.fetch_add(n) + n == target) {
+    push_ctx.on_push_complete_(push_ctx.on_complete_context_);
+    delete &push_ctx;
   }
 }
 
