@@ -155,10 +155,14 @@ struct ChunkSize {
   constexpr static auto value = lexy::construct<ChunkSizeOpt>;
 };
 
+struct UnknownOption {
+  constexpr static auto name = "unknown option";
+};
+
 struct Option {
   constexpr static auto rule = dsl::p<NumThreads> | dsl::p<DB> |
       dsl::p<Prefix> | dsl::p<Timeout> | dsl::p<HeartBeat> |
-      dsl::p<RetryLimit> | dsl::p<ChunkSize>;
+      dsl::p<RetryLimit> | dsl::p<ChunkSize> | dsl::error<UnknownOption>;
   constexpr static auto value = lexy::construct<OptVar>;
 };
 
