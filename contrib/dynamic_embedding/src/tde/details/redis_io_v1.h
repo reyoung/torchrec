@@ -8,9 +8,6 @@
 namespace tde::details::redis_v1 {
 
 struct Option {
- private:
-  struct ParseTag {};
-
  public:
   std::string host_;
   std::string username_;
