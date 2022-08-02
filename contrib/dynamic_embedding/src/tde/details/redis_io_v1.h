@@ -73,12 +73,6 @@ class RedisV1 {
   void HeartBeat(redis::ContextPtr& connection);
   [[nodiscard]] redis::ContextPtr Connect() const;
 
-  void CheckReplyString(
-      std::string_view label,
-      redis::ContextPtr& connection,
-      redis::ReplyPtr& reply,
-      std::string_view expect) const;
-
   void DoFetch(
       uint32_t gid_offset,
       void* fetch_param,

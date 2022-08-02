@@ -213,41 +213,6 @@ RedisV1::~RedisV1() {
   }
 }
 
-void RedisV1::CheckReplyString(
-    std::string_view label,
-    redis::ContextPtr& connection,
-    redis::ReplyPtr& reply,
-    std::string_view expect) const {
-  TORCH_CHECK(
-      !connection->err,
-      "%s error: %s. from redis://%s:%d",
-      label,
-      connection->errstr,
-      opt_.host_,
-      opt_.port_);
-  TORCH_CHECK(
-      reply->type == REDIS_REPLY_STRING,
-      label,
-      " reply should be string, but actual is type ",
-      reply->type,
-      ". from redis://",
-      opt_.host_,
-      ":",
-      opt_.port_);
-
-  auto actual = std::string_view(reply->str, reply->len);
-  TORCH_CHECK(
-      actual == expect,
-      label,
-      "reply not as expect. Expect ",
-      expect,
-      ", Actual ",
-      actual,
-      ", from redis://",
-      opt_.host_,
-      ":",
-      opt_.port_);
-}
 
 static uint32_t CalculateChunkSizeByGlobalIDs(
     uint32_t chunk_size,
