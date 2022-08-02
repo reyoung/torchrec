@@ -45,9 +45,12 @@ class IO {
    * Push Parameter/Optimizer stats to parameter server.
    * @param table_name
    * @param global_ids
-   * @param col_ids
+   * @param col_ids empty if no column slices
    * @param os_ids
-   * @param data
+   * @param data A flatten view of pushing data.
+   * data[gid_offset * num_cols * num_os_id + col_offset * num_os_id +
+   * os_id_offset]
+   *
    * @param offsets
    * @param on_push_complete
    */
