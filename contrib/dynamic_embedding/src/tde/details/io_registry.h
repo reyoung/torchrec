@@ -40,8 +40,8 @@ struct IOPushParameter {
   // data[global_id * num_cols * num_optimizer_stats_
   //       + col_id * num_optimizer_stats_ + os_id ]
   uint32_t num_offsets_;
-  uint64_t* offsets_;
-  void* data_;
+  const uint64_t* offsets_;
+  const void* data_;
   void* on_complete_context_;
   void (*on_push_complete)(void* ctx);
 };

@@ -380,7 +380,7 @@ struct RedisV1PushContext {
   std::vector<int64_t> col_ids_;
   tcb::span<const uint32_t> os_ids_;
   tcb::span<const uint64_t> offsets_;
-  void* data_;
+  const void* data_;
   void* on_complete_context_;
   void (*on_push_complete_)(void*);
 
