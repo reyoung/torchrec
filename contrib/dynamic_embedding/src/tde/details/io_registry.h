@@ -14,7 +14,6 @@ struct IOPullParameter {
   const int64_t* col_ids_;
   const int64_t* global_ids_;
   uint32_t num_optimizer_stats_;
-  int8_t scalar_type_;
   void* on_complete_context_;
   void (*on_global_id_fetched_)(
       void* ctx,
@@ -32,7 +31,7 @@ struct IOPushParameter {
   const int64_t* col_ids_;
   const int64_t* global_ids_;
   uint32_t num_optimizer_stats_;
-  uint32_t* optimizer_stats_ids_;
+  const uint32_t* optimizer_stats_ids_;
   // offsets in bytes
   // data_ptr is 1-D array divided by offsets in bytes.
   // The offsets are jagged and length of offsets array is length + 1.

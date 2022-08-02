@@ -89,6 +89,11 @@ class RedisV1 {
       void* push_ctx,
       redis::ContextPtr& connection) const;
 
+  void CheckStatus(
+      std::string_view label,
+      redis::ContextPtr& connection,
+      redis::ReplyPtr& reply) const;
+
   Option opt_;
   std::vector<std::thread> io_threads_;
   std::deque<MoveOnlyFunction<void(redis::ContextPtr&)>> jobs_;

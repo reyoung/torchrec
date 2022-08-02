@@ -11,7 +11,12 @@ class Notification {
  public:
   void Done();
   void Wait();
-
+  /**
+   * Clear the set status.
+   *
+   * NOTE: Clear is not thread-safe.
+   */
+  void Clear();
 
  private:
   bool set_{false};

@@ -87,7 +87,6 @@ void IO::Pull(
       .col_ids_ = col_ids.data(),
       .global_ids_ = global_ids.data(),
       .num_optimizer_stats_ = num_optimizer_states,
-      .scalar_type_ = static_cast<int8_t>(type),
       .on_global_id_fetched_ = OnGlobalIDFetched,
       .on_all_fetched_ = OnAllFetched,
   };

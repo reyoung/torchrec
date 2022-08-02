@@ -191,13 +191,13 @@ redis::ContextPtr RedisV1::Connect() const {
           opt_.username_.c_str(),
           opt_.password_.c_str())));
     }
-    CheckReplyString("auth error", connection, reply, "OK");
+    CheckStatus("auth error", connection, reply);
   }
 
   if (opt_.db_ != 0) {
     auto reply = redis::ReplyPtr(reinterpret_cast<redisReply*>(
         redisCommand(connection.get(), "SELECT %d", opt_.db_)));
-    CheckReplyString("select db error", connection, reply, "OK");
+    CheckStatus("select db error", connection, reply);
   }
 
   return connection;
@@ -207,6 +207,7 @@ RedisV1::~RedisV1() {
   for (uint32_t i = 0; i < opt_.num_io_threads_; ++i) {
     jobs_.emplace_back();
   }
+  jobs_not_empty_.notify_all();
   for (auto& th : io_threads_) {
     th.join();
   }
@@ -226,20 +227,25 @@ void RedisV1::CheckReplyString(
       opt_.port_);
   TORCH_CHECK(
       reply->type == REDIS_REPLY_STRING,
-      "%s reply should be string, but type %d. from redis://%s:%d",
       label,
+      " reply should be string, but actual is type ",
       reply->type,
+      ". from redis://",
       opt_.host_,
+      ":",
       opt_.port_);
 
   auto actual = std::string_view(reply->str, reply->len);
   TORCH_CHECK(
       actual == expect,
-      "%s reply not as expect. Expect %s, Actual %s, from redis://%s:%d",
       label,
+      "reply not as expect. Expect ",
       expect,
+      ", Actual ",
       actual,
+      ", from redis://",
       opt_.host_,
+      ":",
       opt_.port_);
 }
 
@@ -317,11 +323,11 @@ void RedisV1::DoFetch(
   auto loop = [&](auto&& callback) {
     for (uint32_t i = gid_offset; i < end; ++i) {
       int64_t gid = fetch_param.global_ids_[i];
-      for (auto& col_id : fetch_param.col_ids_) {
+      for (uint32_t j = 0; j < fetch_param.col_ids_.size(); ++j) {
+        auto& col_id = fetch_param.col_ids_[j];
         for (uint32_t os_id = 0; os_id < fetch_param.num_optimizer_stats_;
              ++os_id) {
-          callback(
-              i * fetch_param.col_ids_.size() + col_id, gid, col_id, os_id);
+          callback(i * fetch_param.col_ids_.size() + j, gid, col_id, os_id);
         }
       }
     }
@@ -470,7 +476,7 @@ void RedisV1::DoPush(
         opt_.host_,
         opt_.port_);
     redis::ReplyPtr reply(reinterpret_cast<redisReply*>(replay_ptr));
-    CheckReplyString("reply should be ok", connection, reply, "OK");
+    CheckStatus("reply should be ok", connection, reply);
   });
 
   uint32_t n = end - gid_offset;
@@ -479,6 +485,41 @@ void RedisV1::DoPush(
     push_ctx.on_push_complete_(push_ctx.on_complete_context_);
     delete &push_ctx;
   }
+}
+void RedisV1::CheckStatus(
+    std::string_view label,
+    redis::ContextPtr& connection,
+    redis::ReplyPtr& reply) const {
+  TORCH_CHECK(
+      connection->err == 0,
+      label,
+      " connection error: (",
+      connection->errstr,
+      "), from redis://",
+      opt_.host_,
+      ":",
+      opt_.port_);
+
+  TORCH_CHECK(
+      reply->type == REDIS_REPLY_STATUS,
+      label,
+      " reply should be status, but actual type is ",
+      reply->type,
+      ". from redis://",
+      opt_.host_,
+      ":",
+      opt_.port_);
+
+  auto status = std::string_view{reply->str, reply->len};
+  TORCH_CHECK(
+      status == "OK",
+      label,
+      " reply status should be OK, but actual is ",
+      status,
+      ". from redis://",
+      opt_.host_,
+      ":",
+      opt_.port_);
 }
 
 } // namespace tde::details::redis_v1
