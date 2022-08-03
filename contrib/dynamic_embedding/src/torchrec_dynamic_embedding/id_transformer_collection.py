@@ -13,8 +13,8 @@ class IDTransformerCollection:
     def __init__(
         self,
         tables: Union[List[EmbeddingBagConfig], List[EmbeddingConfig]],
-        eviction_config={},
-        transform_config={},
+        eviction_config=None,
+        transform_config=None,
     ):
         self._configs = tables
 
@@ -42,9 +42,7 @@ class IDTransformerCollection:
             config.feature_names for config in tables
         ]
 
-    def transform(
-        self, global_features: KeyedJaggedTensor, time: int
-    ) -> KeyedJaggedTensor:
+    def transform(self, global_features: KeyedJaggedTensor) -> KeyedJaggedTensor:
         global_values = global_features.values()
         cache_values = torch.empty_like(global_values)
 
@@ -66,9 +64,7 @@ class IDTransformerCollection:
             )
             cache_ids = torch.empty_like(global_ids)
             # TODO(zilinzhu) Do fetch and evict.
-            num_transformed, fetch_ids = transformer.transform(
-                global_ids, cache_ids, time
-            )
+            num_transformed, fetch_ids = transformer.transform(global_ids, cache_ids)
 
             offset = 0
             for idx in feature_indices:

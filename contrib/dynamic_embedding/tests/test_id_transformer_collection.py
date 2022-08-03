@@ -18,7 +18,7 @@ class TestIDTransformer(unittest.TestCase):
             values=torch.tensor([1, 3, 2, 3, 4, 3, 2]),
             lengths=torch.tensor([4, 3]),
         )
-        cache_kjt = transformer_collection.transform(global_kjt, 0)
+        cache_kjt = transformer_collection.transform(global_kjt)
         self.assertEqual(cache_kjt.keys(), global_kjt.keys())
         self.assertTrue(torch.all(cache_kjt.lengths() == global_kjt.lengths()))
         self.assertTrue(
@@ -38,7 +38,7 @@ class TestIDTransformer(unittest.TestCase):
             values=torch.tensor([1, 3, 2, 3, 4, 3, 2, 3, 2, 1]),
             lengths=torch.tensor([4, 3, 3]),
         )
-        cache_kjt = transformer_collection.transform(global_kjt, 0)
+        cache_kjt = transformer_collection.transform(global_kjt)
         self.assertEqual(cache_kjt.keys(), global_kjt.keys())
         self.assertTrue(torch.all(cache_kjt.lengths() == global_kjt.lengths()))
         self.assertTrue(
