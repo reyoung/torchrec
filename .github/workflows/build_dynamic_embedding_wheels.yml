@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        pyver: [ cp36, cp37, cp38, cp39, cp310 ]
+        pyver: [ cp37, cp38, cp39, cp310 ]
 
     steps:
       - uses: actions/checkout@v3
