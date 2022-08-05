@@ -42,4 +42,4 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v3
         with:
-          path: contrib/dynamic_embedding/wheelhouse/*.whl
+          path: wheelhouse/*.whl
