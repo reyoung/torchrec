@@ -28,7 +28,8 @@ jobs:
           submodules: recursive
 
       - uses: pypa/cibuildwheel@v2.8.0
-        working-directory: contrib/dynamic_embedding
+        with: 
+          package-dir: contrib/dynamic_embedding
         env:
           CIBW_BEFORE_BUILD: tools/before_linux_build.sh
           CIBW_BUILD: "${{ matrix.pyver }}-manylinux_x86_64"
