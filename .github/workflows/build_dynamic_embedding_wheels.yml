@@ -31,7 +31,7 @@ jobs:
         with: 
           package-dir: contrib/dynamic_embedding
         env:
-          CIBW_BEFORE_BUILD: tools/before_linux_build.sh
+          CIBW_BEFORE_BUILD: contrib/dynamic_embedding/tools/before_linux_build.sh
           CIBW_BUILD: "${{ matrix.pyver }}-manylinux_x86_64"
           CIBW_REPAIR_WHEEL_COMMAND: "mv {wheel} {dest_dir}"
 
