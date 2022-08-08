@@ -53,21 +53,24 @@ class TestIDTransformer(unittest.TestCase):
                 "num_threads": num_threads,
             },
         )
-        global_ids = torch.empty(shape, dtype=torch.int64)
-        global_ids.random_(0, 512)
-
-        cache_ids = torch.empty_like(global_ids)
-        num_transformed, ids_to_fetch = transformer.transform(global_ids, cache_ids)
-        self.assertEqual(num_transformed, global_ids.numel())
-
         python_transformer = PythonIdTransformer(num_embedding, num_threads)
-        python_cache_ids = python_transformer.transform(global_ids)
-        self.assertTrue(torch.all(cache_ids == python_cache_ids))
+        global_ids = torch.empty(shape, dtype=torch.int64)
 
-        ids_map = {global_id: cache_id for global_id, cache_id in ids_to_fetch.tolist()}
-        for global_id, cache_id in zip(global_ids.tolist(), cache_ids.tolist()):
-            self.assertTrue(global_id in ids_map)
-            self.assertEqual(cache_id, ids_map[global_id])
+        for i in range(10):
+            global_ids.random_(0, 512)
+            cache_ids = torch.empty_like(global_ids)
+            num_transformed, ids_to_fetch = transformer.transform(global_ids, cache_ids)
+            self.assertEqual(num_transformed, global_ids.numel())
+
+            python_cache_ids = python_transformer.transform(global_ids)
+            self.assertTrue(torch.all(cache_ids == python_cache_ids))
+
+            ids_map = {
+                global_id: cache_id for global_id, cache_id in ids_to_fetch.tolist()
+            }
+            for global_id, cache_id in zip(global_ids.tolist(), cache_ids.tolist()):
+                if global_id in ids_map:
+                    self.assertEqual(cache_id, ids_map[global_id])
 
     def testEvict(self):
         num_embedding = 9

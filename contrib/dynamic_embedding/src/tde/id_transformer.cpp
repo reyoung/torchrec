@@ -32,7 +32,7 @@ std::tuple<int64_t, torch::Tensor> IDTransformer::Transform(
       });
   int64_t num_ids_to_fetch = num_ids_to_fetch_.load();
   if (num_ids_to_fetch == 0) {
-    return {num_transformed, torch::Tensor{}};
+    return {num_transformed, torch::tensor({}, torch::dtype(torch::kLong))};
   }
   torch::Tensor ids_to_fetch = torch::from_blob(
                                    ids_to_fetch_.data(),
