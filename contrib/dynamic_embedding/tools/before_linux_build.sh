@@ -6,11 +6,11 @@ arch=x86_64
 
 yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-$distro.repo
 yum install -y \
-        cuda-toolkit-11-6 \
+        cuda-toolkit-11-3 \
         libcudnn8-devel
-ln -s cuda-11.6 /usr/local/cuda
+ln -s cuda-11.3 /usr/local/cuda
 
 pipx install cmake
 pipx install ninja
 python -m pip install scikit-build
-python -m pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+python -m pip install --pre torch --extra-index-url https://download.pytorch.org/whl/nightly/cu113
