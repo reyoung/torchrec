@@ -14,7 +14,7 @@ on:
 
 jobs:
   build_wheels:
-    name: Wheels on ${{ matrix.os }}/${{ matrix.pyver }}
+    name: Wheels on ${{ matrix.os }}/${{ matrix.pyver }}/cu${{ matrix.cuver }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
