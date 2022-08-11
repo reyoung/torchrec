@@ -34,7 +34,7 @@ jobs:
         env:
           CIBW_BEFORE_BUILD: "env CUDA_VERSION=${{ matrix.cuver }} contrib/dynamic_embedding/tools/before_linux_build.sh"
           CIBW_BUILD: "${{ matrix.pyver }}-manylinux_x86_64"
-          CIBW_REPAIR_WHEEL_COMMAND: "env CUDA_VERSION=${{ matrix.cuver }} contrib/dynamic_embedding/tools/repair_wheel.sh"
+          CIBW_REPAIR_WHEEL_COMMAND: "env CUDA_VERSION=${{ matrix.cuver }} contrib/dynamic_embedding/tools/repair_wheel.sh {wheel} {dest_dir}"
 
       - name: Verify clean directory
         run: git diff --exit-code
