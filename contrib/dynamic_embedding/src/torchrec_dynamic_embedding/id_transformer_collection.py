@@ -9,6 +9,22 @@ from .id_transformer import IDTransformer
 __all__ = ["IDTransformerCollection"]
 
 
+def merge_ranges(ranges):
+    if len(ranges) == 0:
+        return []
+    sorted_ranges = sorted(ranges)
+    merged_ranges = []
+    start, end = ranges[0]
+    for new_start, new_end in ranges[1:]:
+        if new_start <= end:
+            end = new_end
+        else:
+            merged_ranges.append((start, end))
+            start, end = new_start, new_end
+    merged_ranges.append((start, end))
+    return merged_ranges
+
+
 class IDTransformerCollection:
     def __init__(
         self,
@@ -56,22 +72,26 @@ class IDTransformerCollection:
             feature_indices = [
                 global_feature_indices[feature_name] for feature_name in feature_names
             ]
-            global_ids = torch.cat(
+            ranges = merge_ranges(
                 [
-                    global_values[offset_per_key[idx] : offset_per_key[idx + 1]]
+                    (offset_per_key[idx], offset_per_key[idx + 1])
                     for idx in feature_indices
                 ]
             )
+            if len(ranges) == 1:
+                global_ids = global_values
+            else:
+                global_ids = torch.cat(
+                    [global_values[start:end] for start, end in ranges]
+                )
             cache_ids = torch.empty_like(global_ids)
             # TODO(zilinzhu) Do fetch and evict.
             _ = transformer.transform(global_ids, cache_ids)
 
             offset = 0
-            for idx in feature_indices:
-                length = offset_per_key[idx + 1] - offset_per_key[idx]
-                cache_values[offset_per_key[idx] : offset_per_key[idx + 1]] = cache_ids[
-                    offset : offset + length
-                ]
+            for start, end in ranges:
+                length = end - start
+                cache_values[start:end] = cache_ids[offset : offset + length]
                 offset += length
         cache_values = KeyedJaggedTensor(
             keys=global_features.keys(),
