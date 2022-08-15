@@ -26,7 +26,7 @@ def transform_loop(dataset, transform_fn, out_queue, done_event):
         del transformed_data
 
 
-class DataLoader:
+class DataLoaderIter:
     def __init__(self, dataset, transform_fn, num_prefetch=0):
         self._data_queue = queue.Queue(maxsize=num_prefetch)
         self._done_event = threading.Event()
@@ -49,3 +49,18 @@ class DataLoader:
         if not self._transform_thread.is_alive():
             raise RuntimeError("Transform thread exited unexpectedly")
         return self._data_queue.get()
+
+
+class DataLoader:
+    def __init__(self, dataset, transform_fn, num_prefetch=0):
+        self._dataset = dataset
+        self._transform_fn = transform_fn
+        self._num_prefetch = num_prefetch
+
+    def __iter__(self):
+        return DataLoaderIter(
+            self._dataset, self._transform_fn, num_prefetch=self._num_prefetch
+        )
+
+    def __len__(self):
+        return len(self._dataset)
