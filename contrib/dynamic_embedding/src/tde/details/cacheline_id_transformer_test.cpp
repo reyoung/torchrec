@@ -4,7 +4,7 @@
 namespace tde::details {
 
 TEST(tde, CachelineThreadedIDTransformer_NoFilter) {
-  CachelineIDTransformer<int32_t, 4, Bitmap<uint8_t>> transformer(16);
+  CachelineIDTransformer<int32_t, 4, 64, Bitmap<uint8_t>> transformer(16);
   const int64_t global_ids[5] = {100, 101, 100, 102, 101};
   int64_t cache_ids[5];
   int64_t expected_cache_ids[5] = {3, 4, 3, 5, 4};
@@ -19,7 +19,7 @@ TEST(tde, CachelineThreadedIDTransformer_NoFilter) {
 }
 
 TEST(tde, CachelineThreadedIDTransformer_Filter) {
-  CachelineIDTransformer<int32_t, 4, Bitmap<uint8_t>> transformer(16);
+  CachelineIDTransformer<int32_t, 4, 64, Bitmap<uint8_t>> transformer(16);
   const int64_t global_ids[5] = {100, 101, 100, 102, 101};
   int64_t cache_ids[5];
   int64_t expected_cache_ids[5] = {3, -1, 3, 4, -1};
@@ -36,7 +36,7 @@ TEST(tde, CachelineThreadedIDTransformer_Filter) {
 }
 
 TEST(tde, CachelineThreadedIDTransformer_Full) {
-  CachelineIDTransformer<int32_t, 4, Bitmap<uint8_t>> transformer(4);
+  CachelineIDTransformer<int32_t, 4, 64, Bitmap<uint8_t>> transformer(4);
   const int64_t global_ids[5] = {100, 101, 102, 103, 104};
   int64_t cache_ids[5];
   int64_t expected_cache_ids[5] = {3, 4, 5, 6, -1};
@@ -52,7 +52,7 @@ TEST(tde, CachelineThreadedIDTransformer_Full) {
 }
 
 TEST(tde, CachelineThreadedIDTransformer_Evict) {
-  CachelineIDTransformer<int32_t, 4, Bitmap<uint8_t>> transformer(4);
+  CachelineIDTransformer<int32_t, 4, 64, Bitmap<uint8_t>> transformer(4);
   const int64_t global_ids[5] = {100, 101, 102, 103, 104};
   int64_t cache_ids[5];
 
@@ -77,7 +77,7 @@ TEST(tde, CachelineThreadedIDTransformer_Evict) {
 }
 
 TEST(tde, CachelineThreadedIDTransformer_Iterator) {
-  CachelineIDTransformer<int32_t, 4, Bitmap<uint8_t>> transformer(16);
+  CachelineIDTransformer<int32_t, 4, 64, Bitmap<uint8_t>> transformer(16);
   const int64_t global_ids[5] = {100, 101, 100, 102, 101};
   int64_t cache_ids[5];
   int64_t expected_cache_ids[5] = {3, 4, 3, 5, 4};

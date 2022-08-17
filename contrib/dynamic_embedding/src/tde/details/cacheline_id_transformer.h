@@ -17,12 +17,14 @@ namespace tde::details {
  */
 template <
     typename LXURecord,
-    int64_t num_cacheline = 4,
+    int64_t num_cacheline = 8,
+    int64_t cacheline_size = 64,
     typename BitMap = Bitmap<uint32_t>,
     typename Hash = std::hash<int64_t>>
 class CachelineIDTransformer {
  public:
   static_assert(num_cacheline > 0, "num_cacheline should be positive.");
+  static_assert(cacheline_size > 0, "cacheline_size should be positive.");
 
   using lxu_record_t = LXURecord;
   using record_t = TransformerRecord<lxu_record_t>;
@@ -36,16 +38,33 @@ class CachelineIDTransformer {
   };
   static constexpr std::string_view type_ = "cacheline";
 
-  explicit CachelineIDTransformer(int64_t num_embedding);
-  CachelineIDTransformer(
-      const CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>&) = delete;
-  CachelineIDTransformer(
-      CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>&&) noexcept = default;
+  explicit CachelineIDTransformer(int64_t num_embedding, int64_t capacity = 0);
+  CachelineIDTransformer(const CachelineIDTransformer<
+                         LXURecord,
+                         num_cacheline,
+                         cacheline_size,
+                         BitMap,
+                         Hash>&) = delete;
+  CachelineIDTransformer(CachelineIDTransformer<
+                         LXURecord,
+                         num_cacheline,
+                         cacheline_size,
+                         BitMap,
+                         Hash>&&) noexcept = default;
 
-  static CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash> Create(
-      int64_t num_embedding,
-      const nlohmann::json& json) {
-    return CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>(num_embedding);
+  static CachelineIDTransformer<
+      LXURecord,
+      num_cacheline,
+      cacheline_size,
+      BitMap,
+      Hash>
+  Create(int64_t num_embedding, const nlohmann::json& json) {
+    return CachelineIDTransformer<
+        LXURecord,
+        num_cacheline,
+        cacheline_size,
+        BitMap,
+        Hash>(num_embedding);
   }
 
   /**
@@ -96,36 +115,42 @@ class CachelineIDTransformer {
 
  private:
   struct CacheValue {
-    int64_t global_id_;
-    struct {
-      uint32_t tagged_cache_id_;
-      LXURecord lxu_record_;
-    };
+    int64_t tagged_global_id_;
+    uint32_t cache_id_;
+    LXURecord lxu_record_;
 
-    bool is_filled() {
-      return tagged_cache_id_ & kFullMask;
+    int64_t global_id() {
+      return tagged_global_id_ & ~kFullMask;
+    }
+    void set_global_id(int64_t global_id) {
+      tagged_global_id_ = global_id | kFullMask;
     }
     uint32_t cache_id() {
-      return tagged_cache_id_ & ~kFullMask;
+      return cache_id_;
     }
     void set_cache_id(uint32_t cache_id) {
-      tagged_cache_id_ = cache_id | kFullMask;
+      cache_id_ = cache_id;
+    }
+
+    bool is_filled() {
+      return tagged_global_id_ < 0;
     }
     void set_empty() {
-      tagged_cache_id_ = 0;
+      tagged_global_id_ = 0;
     }
   };
+  static_assert(sizeof(CacheValue) <= 16);
 
-  static constexpr int64_t kCacheLineSize = 64;
-  static constexpr uint32_t kFullMask = 1 << 31;
+  static constexpr int64_t kFullMask = 1LL << 63;
+  static_assert(kFullMask < 0);
 
   std::tuple<int64_t, int64_t> FindGroupIndex(int64_t val) {
     int64_t hash = hasher_(val);
-    return {hash % num_groups_, hash % group_size_};
+    return {hash / group_size_ % num_groups_, hash % group_size_};
   }
 
   static constexpr int64_t group_size_ =
-      num_cacheline * 8 / static_cast<int64_t>(sizeof(CacheValue));
+      num_cacheline * cacheline_size / static_cast<int64_t>(sizeof(CacheValue));
   int64_t num_groups_;
   Hash hasher_;
   std::unique_ptr<CacheValue[]> cache_values_;
