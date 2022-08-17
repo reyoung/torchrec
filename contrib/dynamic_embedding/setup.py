@@ -44,7 +44,7 @@ setup(
     cmake_args=[
         "-DCMAKE_BUILD_TYPE=Release",
         f"-DCMAKE_PREFIX_PATH={os.path.dirname(torch.__file__)}",
-        "-DTDE_WITH_TESTING=ON",
+        "-DTDE_WITH_TESTING=OFF",
     ]
     + extra_cmake_args,
     cmake_install_dir="src",

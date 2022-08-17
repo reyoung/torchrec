@@ -5,8 +5,7 @@
 namespace tde::details {
 
 static void BM_CachelineIDTransformer(benchmark::State& state) {
-  using Tag = int32_t;
-  CachelineIDTransformer<Tag> transformer(1e8);
+  CachelineIDTransformer<int32_t, 64> transformer(2e8);
   torch::Tensor global_ids = torch::empty({1024, 1024}, torch::kLong);
   torch::Tensor cache_ids = torch::empty_like(global_ids);
   for (auto _ : state) {

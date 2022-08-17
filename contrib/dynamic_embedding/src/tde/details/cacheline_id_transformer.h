@@ -17,11 +17,12 @@ namespace tde::details {
  */
 template <
     typename LXURecord,
+    int64_t num_cacheline = 4,
     typename BitMap = Bitmap<uint32_t>,
     typename Hash = std::hash<int64_t>>
 class CachelineIDTransformer {
  public:
-  // static_assert(num_cacheline > 0, "num_cacheline should be positive.");
+  static_assert(num_cacheline > 0, "num_cacheline should be positive.");
 
   using lxu_record_t = LXURecord;
   using record_t = TransformerRecord<lxu_record_t>;
@@ -37,14 +38,14 @@ class CachelineIDTransformer {
 
   explicit CachelineIDTransformer(int64_t num_embedding);
   CachelineIDTransformer(
-      const CachelineIDTransformer<LXURecord, BitMap, Hash>&) = delete;
+      const CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>&) = delete;
   CachelineIDTransformer(
-      CachelineIDTransformer<LXURecord, BitMap, Hash>&&) noexcept = default;
+      CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>&&) noexcept = default;
 
-  static CachelineIDTransformer<LXURecord, BitMap, Hash> Create(
+  static CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash> Create(
       int64_t num_embedding,
       const nlohmann::json& json) {
-    return CachelineIDTransformer<LXURecord, BitMap, Hash>(num_embedding);
+    return CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>(num_embedding);
   }
 
   /**
@@ -116,16 +117,15 @@ class CachelineIDTransformer {
   };
 
   static constexpr int64_t kCacheLineSize = 64;
-  static constexpr int64_t kGroupSize =
-      kCacheLineSize * 4 / static_cast<int64_t>(sizeof(CacheValue));
-
   static constexpr uint32_t kFullMask = 1 << 31;
 
   std::tuple<int64_t, int64_t> FindGroupIndex(int64_t val) {
     int64_t hash = hasher_(val);
-    return {hash % num_groups_, hash % kGroupSize};
+    return {hash % num_groups_, hash % group_size_};
   }
 
+  static constexpr int64_t group_size_ =
+      num_cacheline * 8 / static_cast<int64_t>(sizeof(CacheValue));
   int64_t num_groups_;
   Hash hasher_;
   std::unique_ptr<CacheValue[]> cache_values_;

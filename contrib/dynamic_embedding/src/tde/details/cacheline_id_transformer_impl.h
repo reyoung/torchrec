@@ -5,25 +5,25 @@
 
 namespace tde::details {
 
-template <typename LXURecord, typename BitMap, typename Hash>
-inline CachelineIDTransformer<LXURecord, BitMap, Hash>::CachelineIDTransformer(
+template <typename LXURecord, int64_t num_cacheline, typename BitMap, typename Hash>
+inline CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>::CachelineIDTransformer(
     int64_t num_embedding)
-    : num_groups_(num_embedding * 2 / kGroupSize + 1),
-      cache_values_(new CacheValue[num_groups_ * kGroupSize]),
+    : num_groups_(num_embedding * 2 / group_size_ + 1),
+      cache_values_(new CacheValue[num_groups_ * group_size_]),
       bitmap_(num_embedding) {
   std::fill(
       cache_values_.get(),
-      cache_values_.get() + num_groups_ * kGroupSize,
+      cache_values_.get() + num_groups_ * group_size_,
       CacheValue{.global_id_ = 0, .tagged_cache_id_ = 0});
 }
 
-template <typename LXURecord, typename BitMap, typename Hash>
+template <typename LXURecord, int64_t num_cacheline, typename BitMap, typename Hash>
 template <
     typename Filter,
     typename CacheIDTransformer,
     typename Update,
     typename Fetch>
-inline int64_t CachelineIDTransformer<LXURecord, BitMap, Hash>::Transform(
+inline int64_t CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>::Transform(
     tcb::span<const int64_t> global_ids,
     tcb::span<int64_t> cache_ids,
     Filter filter,
@@ -41,8 +41,8 @@ inline int64_t CachelineIDTransformer<LXURecord, BitMap, Hash>::Transform(
     bool need_eviction = true;
     // cache_id is in [0, num_embedding)
     int64_t cache_id;
-    for (int64_t k = 0; k < kGroupSize; k++) {
-      int64_t offset = group_id * kGroupSize + (intra_id + k) % kGroupSize;
+    for (int64_t k = 0; k < group_size_; k++) {
+      int64_t offset = group_id * group_size_ + (intra_id + k) % group_size_;
       auto& cache_value = cache_values_[offset];
       if (cache_value.is_filled()) {
         if (cache_value.global_id_ == global_id) {
@@ -76,13 +76,13 @@ inline int64_t CachelineIDTransformer<LXURecord, BitMap, Hash>::Transform(
   return num_transformed;
 }
 
-template <typename LXURecord, typename BitMap, typename Hash>
+template <typename LXURecord, int64_t num_cacheline, typename BitMap, typename Hash>
 template <typename Callback>
-inline void CachelineIDTransformer<LXURecord, BitMap, Hash>::ForEach(
+inline void CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>::ForEach(
     Callback callback) {
   for (int64_t i = 0; i < num_groups_; ++i) {
-    for (int64_t j = 0; j < kGroupSize; ++j) {
-      int64_t offset = i * kGroupSize + j;
+    for (int64_t j = 0; j < group_size_; ++j) {
+      int64_t offset = i * group_size_ + j;
       auto& cache_value = cache_values_[offset];
       if (cache_value.is_filled()) {
         callback(
@@ -94,14 +94,14 @@ inline void CachelineIDTransformer<LXURecord, BitMap, Hash>::ForEach(
   }
 }
 
-template <typename LXURecord, typename BitMap, typename Hash>
-inline void CachelineIDTransformer<LXURecord, BitMap, Hash>::Evict(
+template <typename LXURecord, int64_t num_cacheline, typename BitMap, typename Hash>
+inline void CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>::Evict(
     tcb::span<const int64_t> global_ids) {
   for (const int64_t global_id : global_ids) {
     auto [group_id, intra_id] = FindGroupIndex(global_id);
 
-    for (int64_t k = 0; k < kGroupSize; k++) {
-      int64_t offset = group_id * kGroupSize + (intra_id + k) % kGroupSize;
+    for (int64_t k = 0; k < group_size_; k++) {
+      int64_t offset = group_id * group_size_ + (intra_id + k) % group_size_;
       auto& cache_value = cache_values_[offset];
       if (!cache_value.is_filled()) {
         break;
@@ -116,12 +116,12 @@ inline void CachelineIDTransformer<LXURecord, BitMap, Hash>::Evict(
   }
 }
 
-template <typename LXURecord, typename BitMap, typename Hash>
-inline auto CachelineIDTransformer<LXURecord, BitMap, Hash>::Iterator() const
+template <typename LXURecord, int64_t num_cacheline, typename BitMap, typename Hash>
+inline auto CachelineIDTransformer<LXURecord, num_cacheline, BitMap, Hash>::Iterator() const
     -> MoveOnlyFunction<std::optional<record_t>()> {
   int64_t i = 0;
   return [i, this]() mutable -> std::optional<record_t> {
-    for (; i < num_groups_ * kGroupSize; ++i) {
+    for (; i < num_groups_ * group_size_; ++i) {
       auto& cache_value = cache_values_[i];
       if (cache_value.is_filled()) {
         auto record = record_t{
