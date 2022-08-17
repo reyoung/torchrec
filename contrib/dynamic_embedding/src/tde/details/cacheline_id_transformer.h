@@ -115,15 +115,12 @@ class CachelineIDTransformer {
 
  private:
   struct CacheValue {
-    int64_t tagged_global_id_;
+    int64_t neg_global_id_;
     uint32_t cache_id_;
     LXURecord lxu_record_;
 
     int64_t global_id() {
-      return tagged_global_id_ & ~kFullMask;
-    }
-    void set_global_id(int64_t global_id) {
-      tagged_global_id_ = global_id | kFullMask;
+      return -(neg_global_id_ + 1);
     }
     uint32_t cache_id() {
       return cache_id_;
@@ -133,10 +130,10 @@ class CachelineIDTransformer {
     }
 
     bool is_filled() {
-      return tagged_global_id_ < 0;
+      return neg_global_id_ < 0;
     }
     void set_empty() {
-      tagged_global_id_ = 0;
+      neg_global_id_ = 0;
     }
   };
   static_assert(sizeof(CacheValue) <= 16);

@@ -67,21 +67,22 @@ inline int64_t CachelineIDTransformer<
       int64_t offset = group_id * group_size_ + (intra_id + k) % group_size_;
       auto& cache_value = cache_values_[offset];
       // tricky but fast :p
-      int64_t xor_value = cache_value.tagged_global_id_ ^ global_id;
-      if (xor_value == kFullMask) { // found exist
+      int64_t neg_global_id = -global_id - 1;
+      int64_t xor_value = cache_value.neg_global_id_ ^ neg_global_id;
+      if (xor_value == 0) { // found exist
         cache_id = cache_value.cache_id();
         cache_value.lxu_record_ =
             update(cache_value.lxu_record_, global_id, cache_id);
         need_eviction = false;
         break;
-      } else if (xor_value > 0) { // empty slot
+      } else if (xor_value < 0) { // empty slot
         // The transformer is full.
         if (C10_UNLIKELY(bitmap_.Full())) {
           break;
         }
         auto stored_cache_id = bitmap_.NextFreeBit();
         cache_id = cache_id_transformer(stored_cache_id);
-        cache_value.set_global_id(global_id);
+        cache_value.neg_global_id_ = neg_global_id;
         cache_value.set_cache_id(cache_id);
         cache_value.lxu_record_ =
             update(cache_value.lxu_record_, global_id, cache_id);
@@ -144,10 +145,11 @@ inline void CachelineIDTransformer<
       int64_t offset = group_id * group_size_ + (intra_id + k) % group_size_;
       auto& cache_value = cache_values_[offset];
       // tricky but fast :p
-      int64_t xor_value = global_id ^ cache_value.tagged_global_id_;
-      if (xor_value > 0) { // not exist
+      int64_t neg_global_id_ = -global_id - 1;
+      int64_t xor_value = neg_global_id_ ^ cache_value.neg_global_id_;
+      if (xor_value < 0) { // not exist
         break;
-      } else if (xor_value == kFullMask) { // found slot
+      } else if (xor_value == 0) { // found slot
         bitmap_.FreeBit(cache_value.cache_id());
         cache_value.set_empty();
         break;
