@@ -20,7 +20,7 @@ void IORegistry::RegisterPlugin(const char* filename) {
   IOProvider provider{};
   auto type_ptr = dlsym(ptr.get(), "IO_type");
   TORCH_CHECK(type_ptr != nullptr, "cannot find IO_type symbol");
-  provider.type_ = reinterpret_cast<const char*>(type_ptr);
+  provider.type_ = *reinterpret_cast<const char**>(type_ptr);
 
   auto initialize_ptr = dlsym(ptr.get(), "IO_Initialize");
   TORCH_CHECK(initialize_ptr != nullptr, "cannot find IO_Initialize symbol");
