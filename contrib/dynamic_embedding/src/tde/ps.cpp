@@ -20,6 +20,9 @@ void PS::Fetch(torch::Tensor ids_to_fetch) {
         TORCH_CHECK(val.size() == num_global_ids);
         auto data_ptr = ids_to_fetch.template data_ptr<int64_t>();
         for (uint32_t i = 0; i < num_global_ids; ++i) {
+          if (!val[i].defined()) {
+            continue;
+          }
           int64_t global_id = data_ptr[i];
           std::vector<torch::Tensor> tensors = GetTensorViews(global_id);
           if (tensors.size() == 0) {
