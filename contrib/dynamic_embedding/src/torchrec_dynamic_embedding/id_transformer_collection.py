@@ -4,6 +4,7 @@ import torch
 from torchrec import EmbeddingBagConfig, EmbeddingConfig, KeyedJaggedTensor
 
 from .id_transformer import IDTransformer, TensorList
+from .ps import PSCollection
 
 
 __all__ = ["IDTransformerCollection"]
@@ -15,18 +16,20 @@ class IDTransformerCollection:
         tables: Union[List[EmbeddingBagConfig], List[EmbeddingConfig]],
         eviction_config=None,
         transform_config=None,
+        ps_collection: PSCollection = None,
     ):
         self._configs = tables
+        self._ps_collection = ps_collection
 
         self._transformers = []
-        table_names = set()
+        self._table_names = []
         feature_names = set()
         for config in tables:
-            if config.name in table_names:
+            if config.name in self._table_names:
                 raise ValueError(f"Duplicate table name {config.name}")
             if not config.feature_names:
                 config.feature_names = [config.name]
-            table_names.add(config.name)
+            self._table_names.append(config.name)
             for feature_name in config.feature_names:
                 if feature_name in feature_names:
                     raise ValueError(f"Shared feature not allowed yet.")
@@ -64,8 +67,18 @@ class IDTransformerCollection:
                 cache_values[offset_per_key[idx] : offset_per_key[idx + 1]]
                 for idx in feature_indices
             ]
-            # TODO(zilinzhu) Do fetch and evict.
-            _ = transformer.transform(TensorList(global_ids), TensorList(cache_ids))
+
+            result = transformer.transform(
+                TensorList(global_ids), TensorList(cache_ids)
+            )
+            if self._ps_collection is not None:
+                ps = self._ps_collection[self._table_names[i]]
+                if result.ids_to_fetch is not None:
+                    ps.fetch(result.ids_to_fetch)
+                if not result.sucess:
+                    # TODO(zilinzhu): make this configurable
+                    ids_to_evict = transformer.evict(transformer._num_embedding // 2)
+                    ps.evict(ids_to_evict)
 
         cache_values = KeyedJaggedTensor(
             keys=global_features.keys(),

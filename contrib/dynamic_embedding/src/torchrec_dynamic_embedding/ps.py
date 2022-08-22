@@ -7,7 +7,7 @@ from torch.distributed._shard.sharded_tensor import ShardedTensor
 from torchrec.distributed.model_parallel import DistributedModelParallel as DMP
 from torchrec.distributed.types import ParameterSharding, ShardingPlan
 
-from .id_transformer import TensorList
+from .tensor_list import TensorList
 
 try:
     torch.ops.load_library(os.path.join(os.path.dirname(__file__), "tde_cpp.so"))
