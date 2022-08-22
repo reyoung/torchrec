@@ -38,7 +38,7 @@ TORCH_LIBRARY(tde, m) {
       .def("append", &LocalShardList::emplace_back);
 
   m.class_<PS>("PS")
-      .def(torch::init<std::string, c10::intrusive_ptr<LocalShardList>, int64_t, std::string>())
+      .def(torch::init<std::string, c10::intrusive_ptr<LocalShardList>, int64_t, int64_t, std::string>())
       .def("fetch", &PS::Fetch)
       .def("evict", &PS::Evict);
 

@@ -1,11 +1,13 @@
 import os
-from typing import Callable, Dict, Tuple, Union
+from typing import Callable, Dict, List, Tuple, Union
 
 import torch
 import torch.nn as nn
 from torch.distributed._shard.sharded_tensor import ShardedTensor
 from torchrec.distributed.model_parallel import DistributedModelParallel as DMP
 from torchrec.distributed.types import ParameterSharding, ShardingPlan
+
+from .id_transformer import TensorList
 
 try:
     torch.ops.load_library(os.path.join(os.path.dirname(__file__), "tde_cpp.so"))
@@ -17,25 +19,37 @@ class PS:
     def __init__(
         self,
         table_name: str,
-        tensor: Union[torch.Tensor, ShardedTensor],
+        tensors: Union[List[torch.Tensor], List[ShardedTensor]],
         ps_config: str,
     ):
         shards = torch.classes.tde.LocalShardList()
-        if isinstance(tensor, torch.Tensor):
-            shards.append(0, 0, tensor.shape[0], tensor.shape[1], tensor)
-            col_size = tensor.shape[1]
-        elif isinstance(tensor, ShardedTensor):
-            for shard in tensor.local_shards():
+        num_optimizer_stats = len(tensors)
+        if isinstance(tensors[0], ShardedTensor):
+            # Here we assume the shard metadata of optimizer state and weight are the same.
+            for i, shard in enumerate(tensors[0].local_shards()):
+                local_tensors = [tensor.local_shards()[i] for tensor in tensors]
                 shards.append(
                     shard.metadata.shard_offsets[0],
                     shard.metadata.shard_offsets[1],
                     shard.metadata.shard_sizes[0],
                     shard.metadata.shard_sizes[1],
-                    shard.tensor,
+                    TensorList(local_tensors).tensor_list,
                 )
                 # This assumes all shard have the same column size.
                 col_size = shard.tensor.shape[1]
-        self._ps = torch.classes.tde.PS(table_name, shards, col_size, ps_config)
+        elif isinstance(tensors[0], torch.Tensor):
+            tensors
+            shards.append(
+                0,
+                0,
+                tensors[0].shape[0],
+                tensors[0].shape[1],
+                TensorList(tensors).tensor_list,
+            )
+            col_size = tensors[0].shape[1]
+        self._ps = torch.classes.tde.PS(
+            table_name, shards, col_size, num_optimizer_stats, ps_config
+        )
 
     def evict(self, ids_to_evict: torch.Tensor):
         self._ps.evict(ids_to_evict)
@@ -86,15 +100,26 @@ def get_sharded_modules_recursive(
     return res
 
 
-def get_ps(module: DMP, ps_config: Union[str, Callable[[str, str], str]]):
-    plan = module.plan
+def get_ps(
+    module: DMP,
+    num_optimizer_stats: int,
+    ps_config: Union[str, Callable[[str, str], str]],
+):
+    # Note that `num_optimizer_stats` here does not take the weight into account,
+    # while in C++ side, the weight is also considered a optimizer stat.
+    if num_optimizer_stats > 2 or num_optimizer_stats < 0:
+        raise ValueError(
+            f"num_optimizer_stats must be in [0, 2], got {num_optimizer_stats}"
+        )
 
+    plan = module.plan
     sharded_modules = get_sharded_modules_recursive(module.module, "", plan)
 
     ps_list = {}
 
     for path, (sharded_module, params_plan) in sharded_modules.items():
         state_dict = sharded_module.state_dict()
+        optimizer_state_dict = sharded_module.fused_optimizer.state_dict()["state"]
         tensor_infos = {}
         for key, tensor in state_dict.items():
             # Here we use the fact that state_dict will be shape of
@@ -103,7 +128,12 @@ def get_ps(module: DMP, ps_config: Union[str, Callable[[str, str], str]]):
                 continue
             table_name = key.split(".")[1]
             param_plan = params_plan.pop(table_name)
-            tensor_infos[table_name] = (param_plan, tensor)
+            tensors = [tensor]
+            # This is really hardcoded right now...
+            optimizer_state = optimizer_state_dict[key]
+            for i in range(num_optimizer_stats):
+                tensors.append(optimizer_state[f"{table_name}.momentum{i+1}"])
+            tensor_infos[table_name] = (param_plan, tensors)
 
         assert (
             len(params_plan) == 0
