@@ -15,6 +15,9 @@ except Exception as ex:
     print(f"File tde_cpp.so not found {ex}")
 
 
+__all__ = ["PS", "PSCollection", "get_ps"]
+
+
 class PS:
     def __init__(
         self,
@@ -27,7 +30,7 @@ class PS:
         if isinstance(tensors[0], ShardedTensor):
             # Here we assume the shard metadata of optimizer state and weight are the same.
             for i, shard in enumerate(tensors[0].local_shards()):
-                local_tensors = [tensor.local_shards()[i] for tensor in tensors]
+                local_tensors = [tensor.local_shards()[i].tensor for tensor in tensors]
                 shards.append(
                     shard.metadata.shard_offsets[0],
                     shard.metadata.shard_offsets[1],
@@ -79,6 +82,9 @@ class PSCollection:
             self._ps_collection[table_name] = PS(
                 f"{path}.{table_name}", tensor, table_config
             )
+
+    def keys(self):
+        return self._ps_collection.keys()
 
     def __getitem__(self, table_name):
         return self._ps_collection[table_name]

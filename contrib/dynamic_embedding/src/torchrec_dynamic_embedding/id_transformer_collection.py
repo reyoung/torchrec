@@ -72,13 +72,26 @@ class IDTransformerCollection:
                 TensorList(global_ids), TensorList(cache_ids)
             )
             if self._ps_collection is not None:
-                ps = self._ps_collection[self._table_names[i]]
+                table_name = self._table_names[i]
+                ps = self._ps_collection[table_name]
                 if result.ids_to_fetch is not None:
                     ps.fetch(result.ids_to_fetch)
-                if not result.sucess:
+                if not result.success:
                     # TODO(zilinzhu): make this configurable
                     ids_to_evict = transformer.evict(transformer._num_embedding // 2)
                     ps.evict(ids_to_evict)
+
+                    # retry after eviction.
+                    result = transformer.transform(
+                        TensorList(global_ids), TensorList(cache_ids)
+                    )
+                    if not result.success:
+                        raise RuntimeError(
+                            "Failed to transform global ids after eviction. "
+                            f"Maybe the num_embedding of table {table_name} is too small?"
+                        )
+                    if result.ids_to_fetch is not None:
+                        ps.fetch(result.ids_to_fetch)
 
         cache_values = KeyedJaggedTensor(
             keys=global_features.keys(),

@@ -9,7 +9,7 @@ void IORegistry::Register(IOProvider provider) {
   std::string type = provider.type_;
   auto it = providers_.find(type);
   TORCH_CHECK(
-      it == providers_.end(), "IO provider %s already registered", type);
+      it == providers_.end(), "IO provider ", type, " already registered");
 
   providers_[type] = provider;
 }

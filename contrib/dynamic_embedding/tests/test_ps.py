@@ -3,25 +3,27 @@ import unittest
 
 import torch
 from torchrec_dynamic_embedding import PS
+from utils import register_memory_io
 
-torch.ops.tde.register_io(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "memory_io/memory_io.so")
-)
+
+register_memory_io()
 
 
 class TestPS(unittest.TestCase):
     def testEvictFetch(self):
-        idx = torch.tensor([0, 2, 4, 8], dtype=torch.long)
+        cache_ids = [0, 2, 4, 8]
+        ids = torch.tensor([[100, 0], [101, 2], [102, 4], [103, 8]], dtype=torch.long)
         tensor = torch.rand((10, 4))
         origin_tensor = tensor.clone()
         ps = PS("table", [tensor], "memory://")
-        ps.evict(idx)
+        ps.evict(ids)
         tensor[:, :] = 0
-        ps.fetch(idx)
-        self.assertTrue(torch.allclose(tensor[idx], origin_tensor[idx]))
+        ps.fetch(ids)
+        self.assertTrue(torch.allclose(tensor[cache_ids], origin_tensor[cache_ids]))
 
     def testOS(self):
-        idx = torch.tensor([1, 3, 6], dtype=torch.long)
+        cache_ids = [1, 3, 6]
+        ids = torch.tensor([[100, 1], [101, 3], [102, 6]], dtype=torch.long)
         tensor = torch.rand((10, 4))
         optim1 = torch.rand((10, 4))
         optim2 = torch.rand((10, 4))
@@ -29,29 +31,48 @@ class TestPS(unittest.TestCase):
         origin_optim1 = optim1.clone()
         origin_optim2 = optim2.clone()
         ps = PS("table", [tensor, optim1, optim2], "memory://")
-        ps.evict(idx)
+        ps.evict(ids)
         tensor[:, :] = 0
         optim1[:, :] = 0
         optim2[:, :] = 0
-        ps.fetch(idx)
-        self.assertTrue(torch.allclose(tensor[idx], origin_tensor[idx]))
-        self.assertTrue(torch.allclose(optim1[idx], origin_optim1[idx]))
-        self.assertTrue(torch.allclose(optim2[idx], origin_optim2[idx]))
+        ps.fetch(ids)
+        self.assertTrue(torch.allclose(tensor[cache_ids], origin_tensor[cache_ids]))
+        self.assertTrue(torch.allclose(optim1[cache_ids], origin_optim1[cache_ids]))
+        self.assertTrue(torch.allclose(optim2[cache_ids], origin_optim2[cache_ids]))
 
-    def testFetchNonExist(self):
-        evict_idx = torch.tensor([0, 2, 4], dtype=torch.long)
+    def testFetchToDifferentCacheID(self):
+        cache_ids = [0, 2, 4, 8]
+        evict_ids = torch.tensor(
+            [[100, 0], [101, 2], [102, 4], [103, 8]], dtype=torch.long
+        )
         tensor = torch.rand((10, 4))
         origin_tensor = tensor.clone()
         ps = PS("table", [tensor], "memory://")
-        ps.evict(evict_idx)
+        ps.evict(evict_ids)
         tensor[:, :] = 0
-        additional_fetch_idx = torch.tensor([3, 9], dtype=torch.long)
-        ps.fetch(torch.cat([evict_idx, additional_fetch_idx]))
-        self.assertTrue(torch.allclose(tensor[evict_idx], origin_tensor[evict_idx]))
+        new_cache_ids = [1, 3, 5, 7]
+        fetch_ids = torch.tensor(
+            [[100, 1], [101, 3], [102, 5], [103, 7]], dtype=torch.long
+        )
+        ps.fetch(fetch_ids)
+        self.assertTrue(torch.allclose(tensor[new_cache_ids], origin_tensor[cache_ids]))
+
+    def testFetchNonExist(self):
+        cache_ids = [0, 2, 4]
+        evict_ids = torch.tensor([[100, 0], [101, 2], [102, 4]], dtype=torch.long)
+        tensor = torch.rand((10, 4))
+        origin_tensor = tensor.clone()
+        ps = PS("table", [tensor], "memory://")
+        ps.evict(evict_ids)
+        tensor[:, :] = 0
+        addition_cache_ids = [3, 9]
+        additional_fetch_ids = torch.tensor([[103, 3], [104, 9]], dtype=torch.long)
+        ps.fetch(torch.cat([evict_ids, additional_fetch_ids]))
+        self.assertTrue(torch.allclose(tensor[cache_ids], origin_tensor[cache_ids]))
         self.assertTrue(
             torch.allclose(
-                tensor[additional_fetch_idx],
-                torch.zeros_like(tensor[additional_fetch_idx]),
+                tensor[addition_cache_ids],
+                torch.zeros_like(tensor[addition_cache_ids]),
             )
         )
 
