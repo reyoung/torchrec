@@ -57,8 +57,14 @@ class PS:
     def evict(self, ids_to_evict: torch.Tensor):
         self._ps.evict(ids_to_evict)
 
-    def fetch(self, ids_to_fetch: torch.Tensor):
-        self._ps.fetch(ids_to_fetch)
+    def fetch(
+        self,
+        ids_to_fetch: torch.Tensor,
+        reinit: bool = False,
+        weight_init_max: float = 0,
+        weight_init_min: float = 0,
+    ):
+        self._ps.fetch(ids_to_fetch, reinit, weight_init_max, weight_init_min)
 
 
 class PSCollection:

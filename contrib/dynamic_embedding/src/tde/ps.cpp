@@ -4,7 +4,7 @@
 
 namespace tde {
 
-void PS::Fetch(torch::Tensor ids_to_fetch) {
+void PS::Fetch(torch::Tensor ids_to_fetch, bool reinit, double weight_init_min, double weight_init_max) {
   TORCH_CHECK(ids_to_fetch.dim() == 2);
   std::vector<int64_t> col_ids{0};
   // remove this copy!
@@ -26,6 +26,15 @@ void PS::Fetch(torch::Tensor ids_to_fetch) {
         auto cache_data_ptr = cache_ids.template data_ptr<int64_t>();
         for (uint32_t i = 0; i < num_global_ids; ++i) {
           if (!val[i].defined()) {
+            if (reinit) {
+              int64_t cache_id = cache_data_ptr[i];
+              std::vector<torch::Tensor> tensors = GetTensorViews(cache_id);
+              tensors[0].uniform_(weight_init_min, weight_init_max);
+              // optimizer states will be set to zero
+              for (uint32_t j = 1; j < num_os_ids; ++j) {
+                tensors[j].zero_();
+              }
+            }
             continue;
           }
           int64_t global_id = global_data_ptr[i];

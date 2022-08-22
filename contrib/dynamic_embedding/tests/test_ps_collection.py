@@ -71,6 +71,9 @@ class TestPSCollection(unittest.TestCase):
                 num_embeddings=4,
                 embedding_dim=embedding_dim,
                 feature_names=["A", "B"],
+                # to check reinit
+                weight_init_min=2,
+                weight_init_max=2,
             ),
         ]
         model = EmbeddingCollection(tables=configs, device=torch.device("meta"))
@@ -129,7 +132,7 @@ class TestPSCollection(unittest.TestCase):
         )
         self.assertTrue(
             torch.allclose(
-                embedding["B"].values(), torch.zeros_like(embedding["B"].values())
+                embedding["B"].values(), 2 * torch.ones_like(embedding["B"].values())
             )
         )
 

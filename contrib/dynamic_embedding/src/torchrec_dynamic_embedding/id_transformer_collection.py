@@ -33,7 +33,6 @@ class IDTransformerCollection:
             for feature_name in config.feature_names:
                 if feature_name in feature_names:
                     raise ValueError(f"Shared feature not allowed yet.")
-                feature_names
             self._transformers.append(
                 IDTransformer(
                     num_embedding=config.num_embeddings,
@@ -44,6 +43,7 @@ class IDTransformerCollection:
         self._feature_names: List[List[str]] = [
             config.feature_names for config in tables
         ]
+        self._ever_evicted = False
 
     def transform(self, global_features: KeyedJaggedTensor) -> KeyedJaggedTensor:
         global_values = global_features.values()
@@ -75,11 +75,17 @@ class IDTransformerCollection:
                 table_name = self._table_names[i]
                 ps = self._ps_collection[table_name]
                 if result.ids_to_fetch is not None:
-                    ps.fetch(result.ids_to_fetch)
+                    ps.fetch(
+                        result.ids_to_fetch,
+                        self._ever_evicted,
+                        self._configs[i].get_weight_init_min(),
+                        self._configs[i].get_weight_init_max(),
+                    )
                 if not result.success:
                     # TODO(zilinzhu): make this configurable
                     ids_to_evict = transformer.evict(transformer._num_embedding // 2)
                     ps.evict(ids_to_evict)
+                    self._ever_evicted = True
 
                     # retry after eviction.
                     result = transformer.transform(
@@ -91,7 +97,12 @@ class IDTransformerCollection:
                             f"Maybe the num_embedding of table {table_name} is too small?"
                         )
                     if result.ids_to_fetch is not None:
-                        ps.fetch(result.ids_to_fetch)
+                        ps.fetch(
+                            result.ids_to_fetch,
+                            self._ever_evicted,
+                            self._configs[i].get_weight_init_min(),
+                            self._configs[i].get_weight_init_max(),
+                        )
 
         cache_values = KeyedJaggedTensor(
             keys=global_features.keys(),

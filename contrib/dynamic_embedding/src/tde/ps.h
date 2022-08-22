@@ -65,7 +65,7 @@ class PS : public torch::CustomClassHolder {
     }
   }
 
-  void Fetch(torch::Tensor ids_to_fetch);
+  void Fetch(torch::Tensor ids_to_fetch, bool reinit, double weight_init_min, double weight_init_max);
   void Evict(torch::Tensor ids_to_evict);
 
  private:
