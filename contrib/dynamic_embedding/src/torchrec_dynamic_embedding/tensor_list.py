@@ -17,7 +17,7 @@ class TensorList:
     def __init__(self, tensors: List[torch.Tensor]):
         self.tensor_list = torch.classes.tde.TensorList()
         for tensor in tensors:
-            self.tensor_list.append(tensor)
+            self.tensor_list.append(tensor.detach())
 
     def __len__(self):
         return len(self.tensor_list)
