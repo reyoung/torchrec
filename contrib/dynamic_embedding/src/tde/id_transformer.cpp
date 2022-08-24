@@ -62,9 +62,11 @@ c10::intrusive_ptr<TransformResult> IDTransformer::Transform(
     return c10::make_intrusive<TransformResult>(success, torch::Tensor{});
   }
   TDE_DEBUG();
+  std::vector<int64_t> shape = {num_ids_to_fetch, 2};
+
   torch::Tensor ids_to_fetch = torch::from_blob(
                                    ids_to_fetch_.data(),
-                                   {num_ids_to_fetch, 2},
+                                   shape,
                                    torch::dtype(torch::kLong))
                                    .clone()
                                    .data();
