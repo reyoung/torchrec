@@ -4,30 +4,32 @@
 
 namespace tde {
 
-void PS::Fetch(torch::Tensor ids_to_fetch, bool reinit, double weight_init_min, double weight_init_max) {
+void PS::Fetch(
+    torch::Tensor ids_to_fetch,
+    bool reinit,
+    double weight_init_min,
+    double weight_init_max) {
   TORCH_CHECK(ids_to_fetch.dim() == 2);
   std::vector<int64_t> col_ids{0};
-  // remove this copy!
-  torch::Tensor global_ids = ids_to_fetch.slice(1, 0, 1).contiguous();
-  torch::Tensor cache_ids = ids_to_fetch.slice(1, 1, 2).contiguous();
-  uint32_t num_global_ids = global_ids.numel();
+  Filter(ids_to_fetch);
+  if (cache_ids_to_fetch_or_evict_.empty()) {
+    return;
+  }
   uint32_t num_os_ids = os_ids_.size();
-
   details::Notification notification;
   io_.Pull(
       table_name_,
-      tcb::span{global_ids.template data_ptr<int64_t>(), num_global_ids},
+      global_ids_to_fetch_or_evict_,
       col_ids,
       num_os_ids,
       torch::kF32,
-      [&](std::vector<torch::Tensor> val) {
-        TORCH_CHECK(val.size() == num_global_ids);
-        auto global_data_ptr = global_ids.template data_ptr<int64_t>();
-        auto cache_data_ptr = cache_ids.template data_ptr<int64_t>();
-        for (uint32_t i = 0; i < num_global_ids; ++i) {
-          if (!val[i].defined()) {
+      [&](auto&& val) {
+        TORCH_CHECK(val.size() == cache_ids_to_fetch_or_evict_.size());
+        for (uint32_t i = 0; i < cache_ids_to_fetch_or_evict_.size(); ++i) {
+          int64_t cache_id = cache_ids_to_fetch_or_evict_[i];
+          auto& fetched = val[i];
+          if (!fetched.defined()) {
             if (reinit) {
-              int64_t cache_id = cache_data_ptr[i];
               std::vector<torch::Tensor> tensors = GetTensorViews(cache_id);
               tensors[0].uniform_(weight_init_min, weight_init_max);
               // optimizer states will be set to zero
@@ -37,14 +39,10 @@ void PS::Fetch(torch::Tensor ids_to_fetch, bool reinit, double weight_init_min, 
             }
             continue;
           }
-          int64_t global_id = global_data_ptr[i];
-          int64_t cache_id = cache_data_ptr[i];
+
           std::vector<torch::Tensor> tensors = GetTensorViews(cache_id);
-          if (tensors.size() == 0) {
-            continue;
-          }
           for (uint32_t j = 0; j < num_os_ids; ++j) {
-            tensors[j].copy_(val[i][j]);
+            tensors[j].copy_(fetched.slice(0, j));
           }
         }
         notification.Done();
@@ -52,47 +50,60 @@ void PS::Fetch(torch::Tensor ids_to_fetch, bool reinit, double weight_init_min, 
   notification.Wait();
 }
 
+void PS::Filter(const torch::Tensor& tensor) {
+  cache_ids_to_fetch_or_evict_.clear();
+  global_ids_to_fetch_or_evict_.clear();
+  TORCH_CHECK(tensor.is_contiguous());
+  auto* ptr = tensor.data_ptr<int64_t>();
+  int64_t numel = tensor.numel();
+  for (int64_t i = 0; i < numel; i += 2, ptr += 2) {
+    if (auto cache_id = ptr[1];
+        std::any_of(shards_->begin(), shards_->end(), [&](auto&& shard) {
+          return shard.Has(cache_id);
+        })) {
+      cache_ids_to_fetch_or_evict_.emplace_back(cache_id);
+      global_ids_to_fetch_or_evict_.emplace_back(*ptr);
+    }
+  }
+}
+
 void PS::Evict(torch::Tensor ids_to_evict) {
   TORCH_CHECK(ids_to_evict.dim() == 2);
   std::vector<int64_t> col_ids{0};
   // remove this copy!
-  torch::Tensor global_ids = ids_to_evict.slice(1, 0, 1).contiguous();
-  torch::Tensor cache_ids = ids_to_evict.slice(1, 1, 2).contiguous();
+  Filter(ids_to_evict);
+  if (global_ids_to_fetch_or_evict_.empty()) {
+    return;
+  }
 
-  uint32_t num_global_ids = global_ids.numel();
   uint32_t num_os_ids = os_ids_.size();
-  uint32_t num_offsets = num_global_ids * num_os_ids * col_ids.size() + 1;
-  std::vector<uint64_t> offsets(num_offsets);
-
+  std::vector<uint64_t> offsets;
+  offsets.reserve(
+      global_ids_to_fetch_or_evict_.size() * num_os_ids * col_ids.size() + 1);
+  offsets.emplace_back(0);
   std::vector<float> data(
-      num_global_ids * num_os_ids * col_ids.size() * col_size_);
+      global_ids_to_fetch_or_evict_.size() * num_os_ids * col_ids.size() *
+      col_size_);
 
-  int64_t* global_ids_ptr = global_ids.template data_ptr<int64_t>();
-  int64_t* cache_ids_ptr = cache_ids.template data_ptr<int64_t>();
-  for (uint32_t i = 0; i < num_global_ids; ++i) {
-    int64_t global_id = global_ids_ptr[i];
-    int64_t cache_id = cache_ids_ptr[i];
+  for (auto cache_id : global_ids_to_fetch_or_evict_.size()) {
     std::vector<torch::Tensor> tensors = GetTensorViews(cache_id);
-    if (tensors.size() == 0) {
-      continue;
-    }
     for (uint32_t j : os_ids_) {
       // this cause 2 copy. is this avoidable?
       torch::Tensor tensor = tensors[j].cpu();
-      uint32_t id = i * num_os_ids + j;
-      offsets[id + 1] = offsets[id] + tensor.numel() * tensor.element_size();
       // need to change this when considering col
       memcpy(
-          reinterpret_cast<uint8_t*>(data.data()) + offsets[id],
-          tensor.template data_ptr<float>(),
+          reinterpret_cast<uint8_t*>(data.data()) + offsets.back(),
+          tensor.data_ptr<float>(),
           tensor.numel() * tensor.element_size());
+      offsets.emplace_back(
+          offsets.back() + tensor.numel() * tensor.element_size());
     }
   }
 
   details::Notification notification;
   io_.Push(
       table_name_,
-      tcb::span{global_ids.template data_ptr<int64_t>(), num_global_ids},
+      global_ids_to_fetch_or_evict_,
       col_ids,
       os_ids_,
       tcb::span{
@@ -103,15 +114,13 @@ void PS::Evict(torch::Tensor ids_to_evict) {
   notification.Wait();
 }
 
-std::vector<torch::Tensor> PS::GetTensorViews(int64_t global_id) {
-  std::vector<torch::Tensor> tensors;
-  for (auto& shard : shards_->shards_) {
-    tensors = shard.GetTensorView(global_id);
-    if (tensors.size() != 0) {
-      break;
+std::vector<torch::Tensor> PS::GetTensorViews(int64_t cache_id) {
+  for (auto& shard : *shards_) {
+    if (shard.Has(cache_id)) {
+      return shard.GetTensorView(cache_id);
     }
   }
-  return tensors;
+  TORCH_CHECK(false, "all local shards do not contain cache id ", cache_id);
 }
 
 } // namespace tde
