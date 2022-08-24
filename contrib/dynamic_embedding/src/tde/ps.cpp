@@ -85,7 +85,7 @@ void PS::Evict(torch::Tensor ids_to_evict) {
       global_ids_to_fetch_or_evict_.size() * num_os_ids * col_ids.size() *
       col_size_);
 
-  for (auto cache_id : global_ids_to_fetch_or_evict_.size()) {
+  for (auto cache_id : cache_ids_to_fetch_or_evict_) {
     std::vector<torch::Tensor> tensors = GetTensorViews(cache_id);
     for (uint32_t j : os_ids_) {
       // this cause 2 copy. is this avoidable?
