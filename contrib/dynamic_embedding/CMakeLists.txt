@@ -16,13 +16,6 @@ else()
             NO_DEFAULT_PATH)
 endif()
 
-#if ("X$ENV{CONDA_PREFIX}" STREQUAL "X")
-#    find_package(Torch REQUIRED)
-#    find_package(PythonExtensions REQUIRED)
-#else()
-#
-#endif()
-
 
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
     set(TDE_IS_TOP_LEVEL_PROJECT ON)

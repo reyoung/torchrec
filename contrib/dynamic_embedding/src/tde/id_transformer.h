@@ -27,7 +27,6 @@ class IDTransformer : public torch::CustomClassHolder {
   nlohmann::json json_;
   details::IDTransformer transformer_;
 
-  std::atomic<int64_t> num_ids_to_fetch_;
   std::vector<int64_t> ids_to_fetch_;
 };
 
