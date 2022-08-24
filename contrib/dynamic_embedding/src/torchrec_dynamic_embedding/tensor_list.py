@@ -17,7 +17,9 @@ class TensorList:
     def __init__(self, tensors: List[torch.Tensor]):
         self.tensor_list = torch.classes.tde.TensorList()
         for tensor in tensors:
-            self.tensor_list.append(tensor.detach())
+            # tensor.data will allow inplace ops during autograd.
+            # https://discuss.pytorch.org/t/disable-in-place-correctness-version-check-any-other-workaround/90738/2
+            self.tensor_list.append(tensor.data)
 
     def __len__(self):
         return len(self.tensor_list)
