@@ -24,9 +24,7 @@ class IDTransformer : public torch::CustomClassHolder {
   torch::Tensor Evict(int64_t num_to_evict);
 
  private:
-  nlohmann::json json_;
   details::IDTransformer transformer_;
-
   std::vector<int64_t> ids_to_fetch_;
 };
 
