@@ -1,6 +1,6 @@
 #include "tde/id_transformer.h"
-#include "tde/details/move_only_function.h"
 #include "tde/details/debug.h"
+#include "tde/details/move_only_function.h"
 namespace tde {
 
 IDTransformer::IDTransformer(int64_t num_embedding, nlohmann::json json)
@@ -37,9 +37,10 @@ c10::intrusive_ptr<TransformResult> IDTransformer::Transform(
   }
 
   std::atomic<int64_t> next_fetch_offset{0};
+  bool ok = true;
   for (int64_t i = 0; i < global_id_list->size(); ++i) {
-    torch::Tensor global_ids = (*global_id_list)[i];
-    torch::Tensor cache_ids = (*cache_id_list)[i];
+    auto& global_ids = (*global_id_list)[i];
+    auto& cache_ids = (*cache_id_list)[i];
     int64_t num_transformed = transformer_.Transform(
         tcb::span{
             global_ids.data_ptr<int64_t>(),
@@ -53,15 +54,17 @@ c10::intrusive_ptr<TransformResult> IDTransformer::Transform(
           ids_to_fetch_[2 * offset + 1] = cache_id;
         });
     if (num_transformed != global_ids.numel()) {
-      return c10::make_intrusive<TransformResult>(false, torch::Tensor{});
+      ok = false;
+      break;
     }
   }
 
-  torch::Tensor ids_to_fetch = at::from_blob(
-      ids_to_fetch_.data(),
-      {static_cast<int64_t>(ids_to_fetch_.size() / 2), 2},
-      torch::TensorOptions().dtype(c10::kLong).device(c10::kCPU));
-  return c10::make_intrusive<TransformResult>(true, ids_to_fetch);
+  return c10::make_intrusive<TransformResult>(
+      ok,
+      at::from_blob(
+          ids_to_fetch_.data(),
+          {next_fetch_offset.load(), 2},
+          torch::TensorOptions().dtype(c10::kLong).device(c10::kCPU)));
 }
 
 torch::Tensor IDTransformer::Evict(int64_t num_to_evict) {
