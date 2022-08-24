@@ -10,8 +10,7 @@ IDTransformer::IDTransformer(int64_t num_embedding, nlohmann::json json)
       transformer_(
           std::move(details::LXUStrategy(json_["lxu_strategy"])),
           num_embedding,
-          json_["id_transformer"]),
-      num_ids_to_fetch_(0) {}
+          json_["id_transformer"]) {}
 
 c10::intrusive_ptr<TransformResult> IDTransformer::Transform(
     c10::intrusive_ptr<TensorList> global_id_list,
@@ -62,13 +61,13 @@ c10::intrusive_ptr<TransformResult> IDTransformer::Transform(
   }
   std::vector<int64_t> shape = {next_fetch_offset.load(), 2};
 
-  torch::Tensor ids_to_fetch =
-      torch::from_blob(
-          ids_to_fetch_.data(),
-          shape,
-          torch::TensorOptions().dtype(c10::kLong).device(c10::kCPU))
-          .clone()
-          .data();
+  TDE_DEBUG();
+  torch::Tensor ids_to_fetch = torch::from_blob(
+      ids_to_fetch_.data(),
+      shape,
+      torch::TensorOptions().dtype(c10::kLong).device(c10::kCPU));
+  TDE_DEBUG();
+  ids_to_fetch = ids_to_fetch.clone();
   TDE_DEBUG();
   return c10::make_intrusive<TransformResult>(success, ids_to_fetch);
 }
