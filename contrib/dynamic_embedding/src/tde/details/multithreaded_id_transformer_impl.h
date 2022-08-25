@@ -51,7 +51,7 @@ bool MultiThreadedIDTransformer<UnderlyingTransformer>::Transform(
       futures.begin(), futures.end(), true, [](bool ok, auto&& fut) -> bool {
         // make ok right side to avoid shortcut
         return fut.get() && ok;
-      })
+      });
 }
 
 template <typename UnderlyingTransformer>
