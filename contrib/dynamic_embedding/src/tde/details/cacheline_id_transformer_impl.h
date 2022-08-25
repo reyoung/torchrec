@@ -77,8 +77,8 @@ inline bool CachelineIDTransformer<
       intra_id %= group_size_;
       auto& cache_value = group_begin[intra_id];
       // tricky but fast :p
-      int64_t global_id_not_ = ~global_id;
-      int64_t xor_value = cache_value.global_id_not_ ^ global_id_not_;
+      int64_t global_id_not = ~global_id;
+      int64_t xor_value = cache_value.global_id_not_ ^ global_id_not;
       if (xor_value > 0) {
         continue;
       }
@@ -95,7 +95,7 @@ inline bool CachelineIDTransformer<
         }
         auto stored_cache_id = bitmap_.NextFreeBit();
         cache_id = cache_id_transformer(stored_cache_id);
-        cache_value.global_id_not_ = global_id_not_;
+        cache_value.global_id_not_ = global_id_not;
         cache_value.cache_id_ = cache_id;
         cache_value.lxu_record_ = update(std::nullopt, global_id, cache_id);
         fetch(global_id, cache_id);
@@ -157,13 +157,13 @@ inline void CachelineIDTransformer<
       int64_t offset = group_id * group_size_ + (intra_id + k) % group_size_;
       auto& cache_value = cache_values_[offset];
       // tricky but fast :p
-      int64_t global_id_not_ = ~global_id;
-      int64_t xor_value = global_id_not_ ^ cache_value.global_id_not_;
+      int64_t global_id_not = ~global_id;
+      int64_t xor_value = global_id_not ^ cache_value.global_id_not;
       if (xor_value < 0) { // not exist
         break;
       } else if (xor_value == 0) { // found slot
         bitmap_.FreeBit(cache_value.cache_id_);
-        cache_value.global_id_not_ = 0;
+        cache_value.global_id_not = 0;
         break;
       }
     }
