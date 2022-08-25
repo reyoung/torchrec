@@ -14,7 +14,7 @@ struct LocalShard {
   c10::intrusive_ptr<TensorList> tensors_;
 
   [[nodiscard]] bool Has(int64_t cache_id) const {
-    return row_start_ >= cache_id && cache_id < row_start_ + row_size_;
+    return row_start_ <= cache_id && cache_id < row_start_ + row_size_;
   }
 
   [[nodiscard]] std::vector<torch::Tensor> GetTensorView(

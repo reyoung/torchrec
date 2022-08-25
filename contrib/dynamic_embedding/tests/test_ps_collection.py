@@ -140,22 +140,22 @@ class TestPSCollection(unittest.TestCase):
         weight[:] = torch.ones_like(weight)
         global_kjt_3 = KeyedJaggedTensor(
             keys=["A", "B"],
-            values=torch.tensor([4, 3, 4, 1, 2, 1]),
+            values=torch.tensor([1, 2, 1, 4, 3, 4]),
             lengths=torch.tensor([3, 3]),
         )
         cache_kjt = transformer_collection.transform(global_kjt_3)
         embedding = model(cache_kjt.to(device))
         self.assertTrue(
-            torch.all(cache_kjt.values() == torch.tensor([2, 3, 2, 0, 1, 0]))
+            torch.all(cache_kjt.values() == torch.tensor([0, 1, 0, 2, 3, 2]))
         )
         self.assertTrue(
             torch.allclose(
-                embedding["A"].values(), torch.zeros_like(embedding["A"].values())
+                embedding["A"].values(), torch.ones_like(embedding["A"].values())
             )
         )
         self.assertTrue(
             torch.allclose(
-                embedding["B"].values(), torch.ones_like(embedding["B"].values())
+                embedding["B"].values(), torch.zeros_like(embedding["B"].values())
             )
         )
 

@@ -8,15 +8,17 @@ namespace tde::details {
 void IORegistry::Register(IOProvider provider) {
   std::string type = provider.type_;
   auto it = providers_.find(type);
-  TORCH_CHECK(
-      it == providers_.end(), "IO provider ", type, " already registered");
+  if (it != providers_.end()) {
+    TORCH_WARN("IO provider ", type, " already registered. Ignored this time.");
+    return;
+  }
 
   providers_[type] = provider;
 }
 
 void IORegistry::RegisterPlugin(const char* filename) {
   DLPtr ptr(dlopen(filename, RTLD_LAZY | RTLD_LOCAL));
-  TORCH_CHECK(ptr != nullptr, "cannot load dl %s, errno %d", filename, errno);
+  TORCH_CHECK(ptr != nullptr, "cannot load dl ", filename, ", errno ", errno);
   IOProvider provider{};
   auto type_ptr = dlsym(ptr.get(), "IO_type");
   TORCH_CHECK(type_ptr != nullptr, "cannot find IO_type symbol");

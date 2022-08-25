@@ -42,7 +42,7 @@ void PS::Fetch(
 
           std::vector<torch::Tensor> tensors = GetTensorViews(cache_id);
           for (uint32_t j = 0; j < num_os_ids; ++j) {
-            tensors[j].copy_(fetched.slice(0, j));
+            tensors[j].copy_(fetched.slice(0, j, j + 1));
           }
         }
         notification.Done();
