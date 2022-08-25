@@ -7,19 +7,10 @@ import torch.nn as nn
 from torchrec import EmbeddingCollection, EmbeddingConfig, KeyedJaggedTensor
 from torchrec.distributed.model_parallel import DistributedModelParallel as DMP
 from torchrec_dynamic_embedding import get_ps, IDTransformerCollection
-from utils import register_memory_io
+from utils import init_dist, register_memory_io
 
 
 register_memory_io()
-
-
-def init_dist():
-    if not dist.is_initialized():
-        os.environ["RANK"] = "0"
-        os.environ["WORLD_SIZE"] = "1"
-        os.environ["MASTER_ADDR"] = "127.0.0.1"
-        os.environ["MASTER_PORT"] = "13579"
-        dist.init_process_group("nccl")
 
 
 class TestPSCollection(unittest.TestCase):
