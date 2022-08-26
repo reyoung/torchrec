@@ -111,13 +111,14 @@ class MixedLFULRUStrategy {
       result.emplace_back(item.global_id_);
       items.pop();
     }
+    std::reverse(result.begin(), result.end());
     return result;
   }
 
   // Record should only be used in unittest or internally.
   struct Record {
-    uint16_t freq_power_ : 5;
     uint32_t time_ : 27;
+    uint16_t freq_power_ : 5;
   };
 
  private:

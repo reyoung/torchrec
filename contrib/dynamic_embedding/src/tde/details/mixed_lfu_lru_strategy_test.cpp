@@ -48,10 +48,10 @@ TEST(TDE, MixedLFULRUStrategy_Evict) {
       },
       3);
 
-  ASSERT_EQ(ids.size(), 2);
+  ASSERT_EQ(ids.size(), 3);
   ASSERT_EQ(ids[0], 3);
   ASSERT_EQ(ids[1], 2);
-  ASSERT_EQ(ids[1], 1);
+  ASSERT_EQ(ids[2], 1);
 }
 
 TEST(TDE, MixedLFULRUStrategy_Transform) {
