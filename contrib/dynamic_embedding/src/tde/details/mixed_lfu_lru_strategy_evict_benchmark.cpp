@@ -67,9 +67,9 @@ void BM_MixedLFULRUStrategyEvict(benchmark::State& state) {
 BENCHMARK(BM_MixedLFULRUStrategyEvict)
     ->ArgNames({"total", "max_freq", "max_time", "num_to_evict"})
     ->Args({
-        300000000,
+        300000000 * 2,
         12,
         3000,
-        300000000 / 5,
+        5000000,
     });
 } // namespace tde::details

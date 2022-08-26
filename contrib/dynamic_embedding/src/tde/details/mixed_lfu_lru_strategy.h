@@ -98,10 +98,15 @@ class MixedLFULRUStrategy {
           .global_id_ = val->global_id_,
           .record_ = val->lxu_record_,
       };
-      items.push(item);
-
-      if (items.size() == num_to_evict + 1) {
-        items.pop();
+      if (items.size() == num_to_evict) {
+        if (!(item < items.top())) {
+          continue;
+        } else {
+          items.pop();
+          items.push(item);
+        }
+      } else {
+        items.push(item);
       }
     }
     std::vector<int64_t> result;
