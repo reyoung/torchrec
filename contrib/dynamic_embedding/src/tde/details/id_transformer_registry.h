@@ -89,10 +89,8 @@ using ComposableTransformersWithLXUStrategies =
  * Transformers
  *
  * All possible transformer types.
- *  = ComposableTransformersWithLXUStrategies + ComposedTransformers
- *  =  (All Composable Transformers) X (All Eviction Strategies) +
- *      (All Compose Transformers) X (All Composable Transformers) X
- *      (All Eviction Strategies)
+ *  = ComposableTransformersWithLXUStrategies
+ *  =  (All Composable Transformers) X (All Eviction Strategies)
  */
 using Transformers = ComposableTransformersWithLXUStrategies;
 
