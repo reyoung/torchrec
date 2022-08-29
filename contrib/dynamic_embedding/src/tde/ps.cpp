@@ -1,10 +1,9 @@
 #include "tde/ps.h"
 #include "tde/details/io.h"
-#include "tde/details/notification.h"
 
 namespace tde {
 
-void PS::Fetch(
+c10::intrusive_ptr<Notification> PS::Fetch(
     torch::Tensor ids_to_fetch,
     bool reinit,
     double weight_init_min,
@@ -12,11 +11,12 @@ void PS::Fetch(
   TORCH_CHECK(ids_to_fetch.dim() == 2);
   std::vector<int64_t> col_ids{0};
   Filter(ids_to_fetch);
+  c10::intrusive_ptr<Notification> notification = c10::make_intrusive<Notification>();
   if (cache_ids_to_fetch_or_evict_.empty()) {
-    return;
+    notification->Done();
+    return notification;
   }
   uint32_t num_os_ids = os_ids_.size();
-  details::Notification notification;
   io_.Pull(
       table_name_,
       global_ids_to_fetch_or_evict_,
@@ -45,9 +45,9 @@ void PS::Fetch(
             tensors[j].copy_(fetched.slice(0, j, j + 1));
           }
         }
-        notification.Done();
+        notification->Done();
       });
-  notification.Wait();
+  return notification;
 }
 
 void PS::Filter(const torch::Tensor& tensor) {

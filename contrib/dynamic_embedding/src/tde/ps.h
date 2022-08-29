@@ -4,6 +4,7 @@
 
 #include <utility>
 #include "tde/details/io.h"
+#include "tde/notification.h"
 #include "tde/tensor_list.h"
 
 namespace tde {
@@ -74,7 +75,7 @@ class PS : public torch::CustomClassHolder {
     }
   }
 
-  void Fetch(
+  c10::intrusive_ptr<Notification> Fetch(
       torch::Tensor ids_to_fetch,
       bool reinit,
       double weight_init_min,

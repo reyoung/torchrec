@@ -80,7 +80,7 @@ class PS:
         Fetch `ids_to_fetch` from tensor. If `reinit` is set to `True`, will
         reinitialize the embedding if the global id is not in PS.
         """
-        self._ps.fetch(ids_to_fetch, reinit, weight_init_max, weight_init_min)
+        return self._ps.fetch(ids_to_fetch, reinit, weight_init_max, weight_init_min)
 
 
 class PSCollection:
