@@ -12,7 +12,7 @@ TEST(TDE, IDTransformer) {
   IDTransformer transformer(
       LXUStrategy(nlohmann::json::parse(R"({"type": "mixed_lru_lfu"})")),
       1000,
-      nlohmann::json::parse(R"({"type": "naive"})"));
+      "naive");
   std::vector<int64_t> vec{0, 1, 2};
   std::vector<int64_t> result;
   result.resize(vec.size());
