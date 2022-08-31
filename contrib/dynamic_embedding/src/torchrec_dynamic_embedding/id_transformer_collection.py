@@ -57,16 +57,17 @@ class IDTransformerCollection:
             config.feature_names for config in tables
         ]
         self._ever_evicted = False
+        self._time = 0
 
     def transform(
         self, global_features: KeyedJaggedTensor
-    ) -> Tuple[KeyedJaggedTensor, List[torch.classes.tde.Notification]]:
+    ) -> Tuple[KeyedJaggedTensor, List[torch.classes.tde.FetchHandle]]:
         """
         Transform global kjts into local kjts.
 
         Return:
             KeyedJaggedTensor: the transformed kjt.
-            List[torch.classes.tde.Notification]: list of fetch handles to wait.
+            List[torch.classes.tde.FetchHandle]: list of fetch handles to wait.
         """
         global_values = global_features.values()
         cache_values = torch.empty_like(global_values)
@@ -92,7 +93,7 @@ class IDTransformerCollection:
             ]
 
             result = transformer.transform(
-                TensorList(global_ids), TensorList(cache_ids)
+                TensorList(global_ids), TensorList(cache_ids), self._time
             )
             if self._ps_collection is not None:
                 table_name = self._table_names[i]
@@ -100,15 +101,12 @@ class IDTransformerCollection:
                 if result.ids_to_fetch.numel() > 0:
                     handle = ps.fetch(
                         result.ids_to_fetch,
+                        self._time,
                         self._ever_evicted,
                         self._configs[i].get_weight_init_min(),
                         self._configs[i].get_weight_init_max(),
                     )
-                    if not result.success:
-                        # sync the fetch to make sure the potential rehash is correct.
-                        handle.wait()
-                    else:
-                        fetch_handles.append(handle)
+                    fetch_handles.append(handle)
                 if not result.success:
                     # TODO(zilinzhu): make this configurable
                     ids_to_evict = transformer.evict(transformer._num_embedding // 2)
@@ -117,7 +115,7 @@ class IDTransformerCollection:
 
                     # retry after eviction.
                     result = transformer.transform(
-                        TensorList(global_ids), TensorList(cache_ids)
+                        TensorList(global_ids), TensorList(cache_ids), self._time
                     )
                     if not result.success:
                         raise RuntimeError(
@@ -128,6 +126,7 @@ class IDTransformerCollection:
                         fetch_handles.append(
                             ps.fetch(
                                 result.ids_to_fetch,
+                                self._time,
                                 self._ever_evicted,
                                 self._configs[i].get_weight_init_min(),
                                 self._configs[i].get_weight_init_max(),
@@ -140,4 +139,5 @@ class IDTransformerCollection:
             lengths=global_features.lengths(),
             weights=global_features.weights_or_none(),
         )
+        self._time += 1
         return cache_values, fetch_handles

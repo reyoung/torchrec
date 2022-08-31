@@ -131,7 +131,7 @@ class IDTransformerGroup:
             kjt_dict: dict keyed by module path of global kjts.
         Return:
             Dict[str, KeyedJaggedTensor]
-            List[torch.classes.tde.Notification]: list of fetch handles to wait.
+            List[torch.classes.tde.FetchHandle]: list of fetch handles to wait.
         """
         result = {}
         fetch_handles = []
