@@ -107,33 +107,6 @@ template <
     int64_t cacheline_size,
     typename BitMap,
     typename Hash>
-template <typename Callback>
-inline void CachelineIDTransformer<
-    LXURecord,
-    num_cacheline,
-    cacheline_size,
-    BitMap,
-    Hash>::ForEach(Callback callback) {
-  for (int64_t i = 0; i < num_groups_; ++i) {
-    for (int64_t j = 0; j < group_size_; ++j) {
-      int64_t offset = i * group_size_ + j;
-      auto& cache_value = cache_values_[offset];
-      if (cache_value.is_filled()) {
-        callback(
-            ~cache_value.global_id_not_,
-            cache_value.cache_id_,
-            cache_value.lxu_record_);
-      }
-    }
-  }
-}
-
-template <
-    typename LXURecord,
-    int64_t num_cacheline,
-    int64_t cacheline_size,
-    typename BitMap,
-    typename Hash>
 inline void CachelineIDTransformer<
     LXURecord,
     num_cacheline,
