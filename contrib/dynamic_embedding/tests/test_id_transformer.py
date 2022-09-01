@@ -1,19 +1,13 @@
 import unittest
 
 import torch
-import torchrec_dynamic_embedding
 from torchrec_dynamic_embedding import IDTransformer, TensorList
 
 
 class PythonIdTransformer:
-    def __init__(self, num_embedding, num_threads):
+    def __init__(self, num_embedding):
         self._num_embedding = num_embedding
-        self._num_threads = num_threads
-        self.dict = [{} for _ in range(num_threads)]
-        embedding_per_mapper = num_embedding // num_threads
-        self._mapper_start = [i * embedding_per_mapper for i in range(num_threads)] + [
-            num_embedding
-        ]
+        self.dict = {}
         self.overflow = False
 
     def transform(self, global_ids: torch.Tensor):
@@ -21,16 +15,12 @@ class PythonIdTransformer:
         cache_id_list = [0] * len(global_id_list)
         for i in range(len(global_id_list)):
             gid = global_id_list[i]
-            mapper_id = gid % self._num_threads
-            if gid in self.dict[mapper_id]:
-                cid = self.dict[mapper_id][gid]
+            if gid in self.dict:
+                cid = self.dict[gid]
             else:
-                cid = len(self.dict[mapper_id]) + self._mapper_start[mapper_id]
-                self.dict[mapper_id][gid] = cid
-                if (
-                    len(self.dict[mapper_id])
-                    >= self._mapper_start[mapper_id + 1] - self._mapper_start[mapper_id]
-                ):
+                cid = len(self.dict)
+                self.dict[gid] = cid
+                if len(self.dict) >= self._num_embedding:
                     self.overflow = True
             cache_id_list[i] = cid
         cache_ids = torch.tensor(cache_id_list, dtype=torch.long)
@@ -43,25 +33,22 @@ class TestIDTransformer(unittest.TestCase):
 
     def testTransform(self):
         num_embedding = 1024
-        num_threads = 4
         shape = (1024,)
         transformer = IDTransformer(
             num_embedding,
             transform_config={
-                "type": "thread",
-                "underlying": {"type": "naive"},
-                "num_threads": num_threads,
+                "type": "naive",
             },
         )
-        python_transformer = PythonIdTransformer(num_embedding, num_threads)
+        python_transformer = PythonIdTransformer(num_embedding)
         global_ids = torch.empty(shape, dtype=torch.int64)
 
-        for _ in range(10):
+        for timestamp in range(10):
             global_ids.random_(0, 512)
             cache_ids = torch.empty_like(global_ids)
 
             result = transformer.transform(
-                TensorList([global_ids]), TensorList([cache_ids])
+                TensorList([global_ids]), TensorList([cache_ids]), timestamp
             )
             success, ids_to_fetch = result.success, result.ids_to_fetch
             self.assertTrue(success)
@@ -79,25 +66,22 @@ class TestIDTransformer(unittest.TestCase):
 
     def testEvict(self):
         num_embedding = 9
-        num_threads = 2
         transformer = IDTransformer(
             num_embedding,
             transform_config={
-                "type": "thread",
-                "underlying": {"type": "naive"},
-                "num_threads": num_threads,
+                "type": "naive",
             },
         )
         global_ids = torch.tensor([1, 2, 3, 4], dtype=torch.long)
         cache_ids = torch.empty_like(global_ids)
         result = transformer.transform(
-            TensorList([global_ids]), TensorList([cache_ids])
+            TensorList([global_ids]), TensorList([cache_ids]), 0
         )
         self.assertTrue(result.success)
 
         global_ids = torch.tensor([1, 3, 5, 7], dtype=torch.long)
         result = transformer.transform(
-            TensorList([global_ids]), TensorList([cache_ids])
+            TensorList([global_ids]), TensorList([cache_ids]), 1
         )
         self.assertTrue(result.success)
 
@@ -105,4 +89,4 @@ class TestIDTransformer(unittest.TestCase):
         evicted_tensor = transformer.evict(num_to_evict)
         self.assertEqual(num_to_evict, evicted_tensor.shape[0])
         evicted_ids = sorted(evicted_tensor.tolist())
-        self.assertEqual(evicted_ids, [[2, 0], [4, 1]])
+        self.assertEqual(evicted_ids, [[2, 1], [4, 3]])
