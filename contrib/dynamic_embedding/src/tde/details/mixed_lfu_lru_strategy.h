@@ -99,6 +99,7 @@ class MixedLFULRUStrategy {
           .record_ = val->lxu_record_,
       };
       if (items.size() == num_to_evict) {
+        // it is slightly faster than push/pop item directly.
         if (!(item < items.top())) {
           continue;
         } else {

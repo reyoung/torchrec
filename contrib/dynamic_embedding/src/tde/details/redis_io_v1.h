@@ -3,7 +3,8 @@
 #include <string_view>
 #include "hiredis.h"
 #include "tde/details/io_registry.h"
-#include "tde/details/thread_pool.h"
+#include "tde/details/move_only_function.h"
+#include <deque>
 
 namespace tde::details::redis_v1 {
 
