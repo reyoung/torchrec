@@ -95,7 +95,8 @@ class MixedLFULRUStrategy {
       }
       EvictItem item{
           .global_id_ = val->global_id_,
-          .record_ = val->lxu_record_,
+          // to network byte order, i.e, MSB first
+          .record_ = reinterpret_cast<Record*>(&val->lxu_record_)->ToUint32(),
       };
       if (items.size() == num_to_evict) {
         if (!(item < items.top())) {
@@ -123,6 +124,10 @@ class MixedLFULRUStrategy {
   struct Record {
     uint32_t time_ : 27;
     uint16_t freq_power_ : 5;
+
+    [[nodiscard]] uint32_t ToUint32() const {
+      return time_ | (freq_power_ << (32 - 5));
+    }
   };
 
  private:
