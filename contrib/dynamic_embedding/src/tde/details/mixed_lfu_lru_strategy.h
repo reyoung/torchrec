@@ -95,7 +95,6 @@ class MixedLFULRUStrategy {
       }
       EvictItem item{
           .global_id_ = val->global_id_,
-          // to network byte order, i.e, MSB first
           .record_ = reinterpret_cast<Record*>(&val->lxu_record_)->ToUint32(),
       };
       if (items.size() == num_to_evict) {
