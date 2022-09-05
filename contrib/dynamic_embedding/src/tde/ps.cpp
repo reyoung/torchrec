@@ -25,7 +25,8 @@ c10::intrusive_ptr<FetchHandle> PS::Fetch(
       col_ids,
       num_os_ids,
       torch::kF32,
-      [=, this, cache_ids_to_fetch=std::move(cache_ids_to_fetch_or_evict_)](auto&& val) {
+      [=, this, cache_ids_to_fetch = std::move(cache_ids_to_fetch_or_evict_)](
+          auto&& val) {
         TORCH_CHECK(val.size() == cache_ids_to_fetch.size());
         for (uint32_t i = 0; i < cache_ids_to_fetch.size(); ++i) {
           int64_t cache_id = cache_ids_to_fetch[i];
