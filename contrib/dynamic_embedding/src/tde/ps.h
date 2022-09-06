@@ -67,12 +67,15 @@ class PS : public torch::CustomClassHolder {
      c10::intrusive_ptr<LocalShardList> shards,
      int64_t col_size,
      int64_t num_optimizer_stats,
-     const std::string& io_config)
+     const std::string& io_config,
+     int64_t chunk_size)
       : table_name_(std::move(table_name)),
         shards_(std::move(shards)),
         col_size_(col_size),
         os_ids_(num_optimizer_stats),
-        io_(io_config) {
+        io_(io_config),
+        num_ids_per_chunk_(chunk_size / col_size_ / num_optimizer_stats) {
+    TORCH_CHECK(num_ids_per_chunk_ > 0, "chunk size too small");
     for (int64_t i = 0; i < num_optimizer_stats; ++i) {
       os_ids_[i] = i;
     }
@@ -100,6 +103,7 @@ class PS : public torch::CustomClassHolder {
   c10::intrusive_ptr<LocalShardList> shards_;
   int64_t col_size_;
   std::vector<uint32_t> os_ids_;
+  int64_t num_ids_per_chunk_;
   details::IO io_;
   std::deque<std::pair<int64_t, c10::intrusive_ptr<Notification>>>
       fetch_notifications_;

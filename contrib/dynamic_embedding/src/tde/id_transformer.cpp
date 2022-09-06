@@ -3,7 +3,9 @@
 namespace tde {
 
 IDTransformer::IDTransformer(int64_t num_embedding, nlohmann::json json)
-    : transformer_(num_embedding, std::move(json)), time_(-1), last_save_time_(-1) {}
+    : transformer_(num_embedding, std::move(json)),
+      time_(-1),
+      last_save_time_(-1) {}
 
 c10::intrusive_ptr<TransformResult> IDTransformer::Transform(
     c10::intrusive_ptr<TensorList> global_id_list,

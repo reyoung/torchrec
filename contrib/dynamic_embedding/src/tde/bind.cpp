@@ -43,7 +43,8 @@ TORCH_LIBRARY(tde, m) {
            c10::intrusive_ptr<LocalShardList>,
            int64_t,
            int64_t,
-           std::string>())
+           std::string,
+           int64_t>())
       .def("fetch", &PS::Fetch)
       .def("evict", &PS::Evict);
 }

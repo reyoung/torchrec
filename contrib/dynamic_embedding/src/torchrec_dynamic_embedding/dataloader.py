@@ -135,6 +135,7 @@ def wrap(
     data_info: Dict[int, str] = None,
     eviction_config=None,
     transform_config=None,
+    ps_config=None,
     parallel=True,
     num_prefetch=0,
 ):
@@ -153,6 +154,7 @@ def wrap(
             `emb1` and `emb2` respectively, then `data_info` should be `{ 1: "emb1", 2: "emb2" }`.
         eviction_config: configuration for eviction policy. Default is `{"type": "mixed_lru_lfu"}`
         transform_config: configuration for the transformer. Default is `{"type": "naive"}`
+        transform_config: configuration for the ps. Default is `{"chunk_size": 8 * 1024 * 1024}
         parallel: Whether the IDTransformerCollections will run paralell. When set to True,
             IDTransformerGroup will start a thread for each IDTransformerCollection.
         num_prefetch: number of samples to prefetch.
@@ -186,6 +188,7 @@ def wrap(
         configs_dict,
         eviction_config=eviction_config,
         transform_config=transform_config,
+        ps_config=ps_config,
         parallel=parallel,
     )
     paths = list(configs_dict.keys())
