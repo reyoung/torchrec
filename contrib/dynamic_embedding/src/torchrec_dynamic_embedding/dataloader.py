@@ -208,7 +208,7 @@ def save(module: DistributedModelParallel):
     """
     Save the dynamic embedding part of the model.
     """
-    if not hasattr(module, "_id_transofmer_group"):
+    if not hasattr(module, "_id_transformer_group"):
         raise ValueError(
             "No _id_transformer_group property for module, is this a module with dynamic embeding?"
         )
