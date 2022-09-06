@@ -43,8 +43,8 @@ class IDTransformer:
         """
         return self._transformer.evict(num_to_evict)
 
-    def all(self):
+    def save(self):
         """
-        Get all ids stored in the transformer.
+        Get ids to save.
         """
-        return self._transformer.all()
+        return self._transformer.save()

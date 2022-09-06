@@ -29,7 +29,7 @@ TORCH_LIBRARY(tde, m) {
       }))
       .def("transform", &IDTransformer::Transform)
       .def("evict", &IDTransformer::Evict)
-      .def("all", &IDTransformer::All);
+      .def("save", &IDTransformer::Save);
 
   m.class_<LocalShardList>("LocalShardList")
       .def(torch::init([]() { return c10::make_intrusive<LocalShardList>(); }))

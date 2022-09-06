@@ -107,15 +107,22 @@ class TestIDTransformer(unittest.TestCase):
         )
         self.assertTrue(result.success)
 
+        id_pairs = transformer.save().tolist()
+        self.assertEqual(len(id_pairs), 4)
+        id_dict = {1: 0, 2: 1, 3: 2, 4: 3}
+        for global_id, cache_id in id_pairs:
+            self.assertTrue(global_id in id_dict)
+            self.assertEqual(cache_id, id_dict[global_id])
+
         global_ids = torch.tensor([1, 3, 5, 7], dtype=torch.long)
         result = transformer.transform(
             TensorList([global_ids]), TensorList([cache_ids]), 1
         )
         self.assertTrue(result.success)
 
-        id_pairs = transformer.all().tolist()
-        self.assertEqual(len(id_pairs), 6)
-        id_dict = {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 7: 5}
+        id_pairs = transformer.save().tolist()
+        self.assertEqual(len(id_pairs), 4)
+        id_dict = {1: 0, 3: 2, 5: 4, 7: 5}
         for global_id, cache_id in id_pairs:
             self.assertTrue(global_id in id_dict)
             self.assertEqual(cache_id, id_dict[global_id])

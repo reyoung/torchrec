@@ -147,5 +147,5 @@ class IDTransformerCollection:
             return
         for i, transformer in enumerate(self._transformers):
             table_name = self._table_names[i]
-            ids = transformer.all()
+            ids = transformer.save()
             self._ps_collection[table_name].evict(ids)

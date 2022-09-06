@@ -29,9 +29,9 @@ std::vector<int64_t> IDTransformer::Evict(int64_t num_to_evict) {
   return result;
 }
 
-std::vector<int64_t> IDTransformer::All() {
+std::vector<int64_t> IDTransformer::Save(int64_t time) {
   return std::visit(
-      [&](auto&& s) {
+      [=, this](auto&& s) {
         std::vector<int64_t> result;
         auto iterator = s.Iterator();
         while (true) {
@@ -39,8 +39,10 @@ std::vector<int64_t> IDTransformer::All() {
           if (!val.has_value()) [[unlikely]] {
             break;
           }
-          result.emplace_back(val->global_id_);
-          result.emplace_back(val->cache_id_);
+          if (strategy_.Time(val->lxu_record_) > time) {
+            result.emplace_back(val->global_id_);
+            result.emplace_back(val->cache_id_);
+          }
         }
         return result;
       },
