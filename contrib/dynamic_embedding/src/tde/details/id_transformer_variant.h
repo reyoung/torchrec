@@ -31,6 +31,7 @@ class IDTransformer {
       Fetch fetch = transform_default::NoFetch);
 
   std::vector<int64_t> Evict(int64_t num_to_evict);
+  std::vector<int64_t> All();
 
   struct LXUStrategy {
    private:

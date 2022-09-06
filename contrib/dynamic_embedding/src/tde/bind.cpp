@@ -28,7 +28,8 @@ TORCH_LIBRARY(tde, m) {
             num_embedding, std::move(json));
       }))
       .def("transform", &IDTransformer::Transform)
-      .def("evict", &IDTransformer::Evict);
+      .def("evict", &IDTransformer::Evict)
+      .def("all", &IDTransformer::All);
 
   m.class_<LocalShardList>("LocalShardList")
       .def(torch::init([]() { return c10::make_intrusive<LocalShardList>(); }))

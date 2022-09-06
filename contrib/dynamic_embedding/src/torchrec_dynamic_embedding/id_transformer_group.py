@@ -155,6 +155,10 @@ class IDTransformerGroup:
                 fetch_handles.extend(handles)
         return result, fetch_handles
 
+    def save(self):
+        for _, id_transformer_collection in self._id_transformer_collections.items():
+            id_transformer_collection.save()
+
     def __contains__(self, path):
         """
         Check if there is transformer for the path.

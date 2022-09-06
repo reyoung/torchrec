@@ -22,8 +22,10 @@ class IDTransformer : public torch::CustomClassHolder {
       int64_t time);
 
   torch::Tensor Evict(int64_t num_to_evict);
+  torch::Tensor All();
 
  private:
+  std::mutex mu_;
   details::IDTransformer transformer_;
   std::vector<int64_t> ids_to_fetch_;
 };

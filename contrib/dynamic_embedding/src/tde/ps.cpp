@@ -9,6 +9,7 @@ c10::intrusive_ptr<FetchHandle> PS::Fetch(
     bool reinit,
     double weight_init_min,
     double weight_init_max) {
+  std::lock_guard<std::mutex> lock(mu_);
   TORCH_CHECK(ids_to_fetch.dim() == 2);
   std::vector<int64_t> col_ids{0};
   Filter(ids_to_fetch);
@@ -74,6 +75,7 @@ void PS::Filter(const torch::Tensor& tensor) {
 }
 
 void PS::Evict(torch::Tensor ids_to_evict) {
+  std::lock_guard<std::mutex> lock(mu_);
   TORCH_CHECK(ids_to_evict.dim() == 2);
   // make sure all previous fetches are done.
   SyncFetch();

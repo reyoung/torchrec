@@ -29,6 +29,24 @@ std::vector<int64_t> IDTransformer::Evict(int64_t num_to_evict) {
   return result;
 }
 
+std::vector<int64_t> IDTransformer::All() {
+  return std::visit(
+      [&](auto&& s) {
+        std::vector<int64_t> result;
+        auto iterator = s.Iterator();
+        while (true) {
+          auto val = iterator();
+          if (!val.has_value()) [[unlikely]] {
+            break;
+          }
+          result.emplace_back(val->global_id_);
+          result.emplace_back(val->cache_id_);
+        }
+        return result;
+      },
+      var_);
+}
+
 IDTransformer::LXUStrategy::LXUStrategy(const nlohmann::json& json)
     : strategy_(MixedLFULRUStrategy(json.value("min_used_freq_power", 5))) {
   if (auto it = json.find("type"); it != json.end()) {
